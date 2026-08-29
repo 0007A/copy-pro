@@ -1363,55 +1363,52 @@
     padding: 16px;
     box-shadow: var(--shadow-md);
   }
-  .yt-video-wrapper {
-    position: relative;
+  .yt-launch-panel {
     width: 100%;
-    padding-top: 56.25%;
-    background: #000000;
+    aspect-ratio: 16/9;
+    background: linear-gradient(135deg, rgba(30, 27, 75, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.15);
     border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    padding: 24px;
+    box-sizing: border-box;
   }
-  .yt-video-wrapper video, .yt-video-wrapper iframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: var(--radius-md);
-  }
-  .yt-skip-overlay {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 70px;
-    height: 70px;
-    background: rgba(0, 0, 0, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(4px);
-    border-radius: 50%;
+  .yt-launch-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 11px;
-    font-weight: 800;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    z-index: 10;
+    text-align: center;
   }
-  .yt-skip-overlay.active {
-    opacity: 1;
-    transform: translateY(-50%) scale(1.15);
+  .yt-launch-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    animation: float-icon 3s ease-in-out infinite;
   }
-  .yt-skip-overlay.left {
-    left: 15%;
+  .yt-large-launch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(90deg, #4F46E5 0%, #6366F1 100%);
+    color: #fff !important;
+    font-weight: 700;
+    font-size: 15px;
+    padding: 14px 28px;
+    border-radius: 50px;
+    text-decoration: none;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    transition: all 0.2s ease;
   }
-  .yt-skip-overlay.right {
-    right: 15%;
+  .yt-large-launch-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+  }
+  @keyframes float-icon {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
   .yt-video-meta {
     display: flex;
@@ -1894,32 +1891,19 @@
 
       <!-- Theater Watch Area (Video Player + Sidebar Playlist) -->
       
-        <!-- Smart Video Link Bar -->
-        <div style="display:flex; gap:10px; margin-bottom:14px; background:var(--bg-card); padding:10px 14px; border-radius:var(--radius-md); border:1px solid var(--border-color); align-items:center;">
-          <span style="font-size:16px;">🔗</span>
-          <input type="text" id="custom-video-url-input" placeholder="Paste any PW Video Watch Link or YouTube URL here..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:8px 12px; color:#fff; font-size:13px; outline:none;" />
-          <button class="yt-launch-pill-btn" style="pointer-events:auto; padding:8px 16px;" onclick="playCustomPWSpeficicURL()">
-            <span>▶ Play Video</span>
-          </button>
-        </div>
-
         <div class="yt-watch-theater" id="yt-watch-section">
-        <!-- Left: Main Video Player -->
+        <!-- Left: Main Video Launch Card -->
         <div class="yt-main-player-col">
-          <div class="yt-video-wrapper" id="yt-player-box">
-            <video id="yt-cloud-video" controls="controls" poster="https://static.pw.live/5eb393ee95fab7468a79d189/image/4a25378f-68be-4ab7-a017-cc518fab3e2d.png"></video>
-            <iframe id="yt-iframe-player" style="display:none; width:100%; height:100%; border:none;" allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"></iframe>
-            
-            <!-- Sleek Play / Launch Overlay for Protected Streams -->
-            <div class="yt-stream-overlay" id="yt-stream-overlay" onclick="launchActiveLectureStream()">
-              <div class="yt-play-circle">▶</div>
-              <div style="text-align:center;">
-                <div style="font-size:16px; font-weight:800; color:#fff;" id="yt-overlay-title">Click to Play Lecture</div>
-                <div style="font-size:12px; color:#A5B4FC; margin-top:4px;">Direct Cloud Stream • High Definition 1080p</div>
-              </div>
-              <button class="yt-launch-pill-btn">
-                <span>🚀 Play in PW Study Player</span>
-              </button>
+          <div class="yt-launch-panel" id="yt-player-box">
+            <div class="yt-launch-card">
+              <div class="yt-launch-icon">🚀</div>
+              <h3 id="yt-overlay-title" style="margin: 0; font-size: 20px; font-weight: 800; color: #fff;">Select a Lecture to Start Learning</h3>
+              <p style="font-size: 13px; color: var(--text-dim); margin: 8px 0 20px 0; text-align: center; max-width: 440px;">
+                Physics Wallah video player is secured. Click the button below to open this lecture directly on PW in a new tab.
+              </p>
+              <a id="yt-btn-pw-launch" href="#" target="_blank" class="yt-large-launch-btn">
+                <span>🚀 Open Lecture on PW (New Tab)</span>
+              </a>
             </div>
           </div>
 
@@ -1929,9 +1913,6 @@
                 <span class="quiz-subject-badge" id="yt-active-subject" style="margin-bottom:6px; display:inline-block;">Mathematics</span>
                 <h2 class="yt-video-title" id="yt-active-title">Select a Lecture to Start Learning</h2>
               </div>
-              <a id="yt-btn-pw-direct" href="#" target="_blank" class="yt-action-btn" style="background:#FF0000; color:#fff; border-color:#FF0000; text-decoration:none;">
-                <span>▶️ Watch Inside Website</span>
-              </a>
             </div>
             
             <div class="yt-video-channel-row">
@@ -1941,22 +1922,6 @@
                   <div class="yt-channel-name" id="yt-active-faculty">Physics Wallah • Expert Faculty</div>
                   <div class="yt-batch-badge" id="yt-active-batch">Safar 4.0 SSC CGL | CHSL 2026 Complete Batch</div>
                 </div>
-              </div>
-
-              <div class="yt-player-actions">
-                <button class="yt-action-btn" onclick="changePWPlaybackSpeed()">
-                  <span>⏩ Speed:</span>
-                  <strong id="yt-speed-label">1.0x</strong>
-                </button>
-                <button class="yt-action-btn" onclick="skipPWVideo(10)">
-                  <span>⏩ +10s</span>
-                </button>
-                <button class="yt-action-btn" onclick="skipPWVideo(-10)">
-                  <span>⏪ -10s</span>
-                </button>
-                <button class="yt-action-btn" onclick="togglePWFullscreen()">
-                  <span>⛶ Fullscreen</span>
-                </button>
               </div>
             </div>
           </div>
@@ -5176,47 +5141,14 @@
     var overlayTitle = document.getElementById('yt-overlay-title');
     var subjEl = document.getElementById('yt-active-subject');
     var facultyEl = document.getElementById('yt-active-faculty');
-    var directBtn = document.getElementById('yt-btn-pw-direct');
-    var overlay = document.getElementById('yt-stream-overlay');
-    var videoEl = document.getElementById('yt-cloud-video');
-    var iframeEl = document.getElementById('yt-iframe-player');
+    var launchBtn = document.getElementById('yt-btn-pw-launch');
 
     if (titleEl) titleEl.textContent = item.title;
     if (overlayTitle) overlayTitle.textContent = item.title;
     if (subjEl) subjEl.textContent = item.subject + ' • ' + item.chapter;
     if (facultyEl) facultyEl.textContent = item.faculty;
-    if (directBtn) {
-      if (item.streamUrl && item.streamUrl.indexOf('youtube.com') !== -1) {
-        directBtn.onclick = function(e) {
-          e.preventDefault();
-          launchActiveLectureStream();
-        };
-        directBtn.innerHTML = '<span>▶️ Watch Inside Website</span>';
-        directBtn.href = '#';
-      } else {
-        // For PW streams, open directly in a new tab so user can log in without iframe block!
-        directBtn.onclick = null;
-        directBtn.href = item.pwUrl;
-        directBtn.innerHTML = '<span>🔑 PW Login / Open in New Tab</span>';
-      }
-    }
-
-    if (!videoEl || !iframeEl) return;
-
-    if (item.streamUrl && item.streamUrl.indexOf('youtube.com') !== -1) {
-      if (overlay) overlay.style.display = 'none';
-      videoEl.style.display = 'none';
-      iframeEl.style.display = 'block';
-      iframeEl.src = item.streamUrl;
-    } else {
-      // Show Sleek Overlay first so user can choose to Login/Open in New Tab or Play in Iframe
-      if (overlay) {
-        overlay.style.display = 'flex';
-        overlay.onclick = function() { launchActiveLectureStream(); };
-      }
-      videoEl.style.display = 'none';
-      iframeEl.style.display = 'none';
-      iframeEl.src = '';
+    if (launchBtn) {
+      launchBtn.href = item.pwUrl;
     }
 
     document.querySelectorAll('.pw-lecture-item').forEach(function(el) {
@@ -5229,106 +5161,9 @@
     });
 
     if (typeof showToast === 'function') {
-      showToast('▶ ' + item.title, 'success');
+      showToast('📖 Selected: ' + item.title, 'success');
     }
   }
-
-  
-
-  
-
-  function changePWPlaybackSpeed() {
-    var speeds = [1.0, 1.25, 1.5, 2.0];
-    var nextIdx = (speeds.indexOf(currentPWSpeed) + 1) % speeds.length;
-    currentPWSpeed = speeds[nextIdx];
-    
-    var videoEl = document.getElementById('yt-cloud-video');
-    if (videoEl) videoEl.playbackRate = currentPWSpeed;
-    var lbl = document.getElementById('yt-speed-label');
-    if (lbl) lbl.textContent = currentPWSpeed + 'x';
-    if (typeof showToast === 'function') showToast('Speed: ' + currentPWSpeed + 'x', 'info');
-  }
-
-  function skipPWVideo(deltaSec) {
-    var videoEl = document.getElementById('yt-cloud-video');
-    if (videoEl) {
-      videoEl.currentTime = Math.max(0, videoEl.currentTime + deltaSec);
-    }
-  }
-
-  function togglePWFullscreen() {
-    var wrapper = document.querySelector('.yt-video-wrapper');
-    if (wrapper) {
-      if (!document.fullscreenElement) {
-        wrapper.requestFullscreen().catch(function(err) { alert(err.message); });
-      } else {
-        document.exitFullscreen();
-      }
-    }
-  }
-
-  // 📱 Double Tap to Skip 10s (YouTube Style) for Native Video Player
-  (function() {
-    let lastTap = 0;
-    
-    document.addEventListener('DOMContentLoaded', function() {
-      const videoEl = document.getElementById('yt-cloud-video');
-      const wrapper = document.querySelector('.yt-video-wrapper');
-      if (!videoEl || !wrapper) return;
-
-      // Create Skip Feedback overlays if they don't exist
-      let leftOverlay = document.getElementById('yt-skip-left');
-      if (!leftOverlay) {
-        leftOverlay = document.createElement('div');
-        leftOverlay.id = 'yt-skip-left';
-        leftOverlay.className = 'yt-skip-overlay left';
-        leftOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">◀◀</div><div>10s</div>';
-        wrapper.appendChild(leftOverlay);
-      }
-
-      let rightOverlay = document.getElementById('yt-skip-right');
-      if (!rightOverlay) {
-        rightOverlay = document.createElement('div');
-        rightOverlay.id = 'yt-skip-right';
-        rightOverlay.className = 'yt-skip-overlay right';
-        rightOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">▶▶</div><div>10s</div>';
-        wrapper.appendChild(rightOverlay);
-      }
-
-      function showSkipFeedback(direction) {
-        const overlay = (direction === 'left') ? leftOverlay : rightOverlay;
-        overlay.classList.add('active');
-        setTimeout(() => {
-          overlay.classList.remove('active');
-        }, 500);
-      }
-
-      videoEl.addEventListener('click', function(e) {
-        const rect = videoEl.getBoundingClientRect();
-        const clickY = e.clientY - rect.top;
-        const clickX = e.clientX - rect.left;
-        
-        // Skip Y calculation (if clicked in the controls area at the bottom 20%, ignore)
-        if (clickY > rect.height * 0.8) return;
-        
-        const now = Date.now();
-        const DOUBLE_PRESS_DELAY = 300;
-        if (now - lastTap < DOUBLE_PRESS_DELAY) {
-          e.preventDefault();
-          if (clickX < rect.width / 2) {
-            // Left Double Tap -> Rewind 10s
-            videoEl.currentTime = Math.max(0, videoEl.currentTime - 10);
-            showSkipFeedback('left');
-          } else {
-            // Right Double Tap -> Forward 10s
-            videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10);
-            showSkipFeedback('right');
-          }
-        }
-        lastTap = now;
-      });
-    });
-  })();
 
   //]]></script>
 </body>
