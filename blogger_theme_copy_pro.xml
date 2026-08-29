@@ -5388,8 +5388,8 @@
       const searchTerm = encodeURIComponent(sec.shortName || sec.name);
       const searchUrl = 'https://api.testbook.com/api/v1/search/individual?searchObj=tests&term=' + searchTerm + '&skip=0&limit=25';
       const result = await tbFetchDirect(searchUrl);
-      if (result && result.data && result.data.tests) {
-        tests = result.data.tests;
+      if (result && result.data) {
+        tests = (result.data.results && result.data.results.tests) ? result.data.results.tests : (result.data.tests || []);
       }
     }
     
