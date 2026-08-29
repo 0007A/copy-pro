@@ -188,3 +188,18 @@ All original files are backed up before making any modifications:
      - Intercepted click events on lecture items: clicking any lecture now instantly triggers `window.open(lec.pwUrl, '_blank')` to launch the class directly in a new browser tab on Physics Wallah.
      - Adds a dynamic `Launch 🚀` tag on all cards to guide user navigation.
      - Direct new tab routing ensures standard authentication cookies work cleanly without cross-origin iframe security blocks.
+
+---
+
+## 🔌 13. CHROME & KIWI BROWSER GESTURE EXTENSION (2026-08-29)
+
+* **Features Implemented:**
+  1. **Extension Bundle (`copy-pro-extension`):**
+     - Developed a Manifest V3 Chrome Extension compatible with both desktop browsers (Chrome, Edge) and mobile environments (Kiwi Browser).
+     - `manifest.json`: Configured with match permissions for `https://*.pw.live/*` and `https://*.penpencil.co/*` to run content scripts on all matching inner player frames (`all_frames: true`).
+     - `content.js`: Continuously monitors the DOM for `<video>` elements, injects custom YouTube-style feedback ripple elements (`pw-ext-skip-overlay`), and binds captures-phase click handlers.
+  2. **Double-Tap Skip Integration:**
+     - Restores the 10-second skip forward (right double-tap) and rewind (left double-tap) gestures directly on PW's official web player pages.
+     - Preserves click compatibility by ignoring gestures occurring in the bottom 20% controls zone.
+  3. **Direct Zip Deployment (`copy-pro-extension.zip`):**
+     - Bundled the extension folder into a portable ZIP archive at the project root for fast extraction and local installation via developer mode.
