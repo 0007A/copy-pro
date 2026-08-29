@@ -1,0 +1,10 @@
+{
+  "pitch": 109.41871820494184,
+  "centroid": 1422.7943830596946,
+  "zcr": 0.1158425435423851,
+  "rms_volume": 4.965721130371094,
+  "band_low_ratio": 0.23977798258940036,
+  "band_mid_ratio": 0.3401067343605273,
+  "band_high_ratio": 0.42011528305004253,
+  "calibrated_energy_threshold": 150
+}

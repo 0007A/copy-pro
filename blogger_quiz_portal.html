@@ -1,0 +1,4351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Copy Pro - Smart MCQ & CBT Portal</title>
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<!-- SQLite & SheetJS for Local DB / Excel File Parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<style>
+
+  :root {
+    --bg-main: #0B0D17;
+    --bg-card: rgba(22, 27, 46, 0.88);
+    --bg-card-hover: rgba(30, 38, 64, 0.96);
+    --bg-input: #151A30;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-glow: rgba(99, 102, 241, 0.35);
+    
+    --primary: #6366F1;
+    --primary-hover: #4F46E5;
+    --primary-glow: rgba(99, 102, 241, 0.4);
+    
+    --accent-cyan: #06B6D4;
+    --accent-purple: #A855F7;
+    --accent-green: #10B981;
+    --accent-red: #EF4444;
+    --accent-amber: #F59E0B;
+    --accent-orange: #FF9800;
+
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --text-dim: #64748B;
+    
+    --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-full: 9999px;
+    
+    --shadow-sm: 0 4px 12px rgba(0,0,0,0.25);
+    --shadow-md: 0 10px 30px rgba(0,0,0,0.4);
+    --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.35);
+  }
+
+  body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--bg-main) !important;
+    background-image: 
+      radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(168, 85, 247, 0.12) 0%, transparent 40%) !important;
+    background-attachment: fixed !important;
+    color: var(--text-main) !important;
+    font-family: var(--font-body) !important;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .navbar, .blogger-navbar, #navbar-iframe, .header-widget, .blog-pager, .post-footer, .feed-links {
+    display: none !important;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  .portal-wrapper {
+    max-width: 1350px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 14px 12px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Sticky Top Header Container */
+  .portal-header-container {
+    background: var(--bg-card);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .portal-nav-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #6366F1, #A855F7);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--shadow-glow);
+    flex-shrink: 0;
+  }
+
+  .brand-title {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #FFFFFF 30%, #DDD6FE 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .brand-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: rgba(99, 102, 241, 0.2);
+    color: #A5B4FC;
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+  }
+
+  .nav-tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .nav-tab-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .nav-tab-btn.active {
+    background: var(--primary);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px var(--primary-glow);
+  }
+
+  /* Header Quick Action Bar (Mobile & Desktop) */
+  .header-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .header-actions-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-action-chip {
+    padding: 6px 12px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+    flex-shrink: 0;
+  }
+
+  .header-action-chip:hover, .header-action-chip:active {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+  }
+
+  .header-action-chip.btn-play-chip {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    border-color: #10B981 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+  }
+
+  .header-action-chip.btn-sync-chip {
+    background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+    border-color: #F59E0B !important;
+    color: #FFFFFF !important;
+  }
+
+  .header-action-chip.btn-history-chip {
+    background: linear-gradient(135deg, #0284C7, #0369A1) !important;
+    border-color: #0284C7 !important;
+    color: #FFFFFF !important;
+  }
+
+  .header-action-chip.btn-bulk-chip {
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple)) !important;
+    border-color: transparent !important;
+    color: #FFFFFF !important;
+  }
+
+  .header-action-chip.btn-admin-chip {
+    border-color: rgba(168, 85, 247, 0.4) !important;
+    background: rgba(168, 85, 247, 0.15) !important;
+    color: #DDD6FE !important;
+  }
+
+  .header-action-chip.btn-admin-chip.active {
+    background: linear-gradient(135deg, #7C3AED, #4F46E5) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+  }
+
+  .header-action-chip.btn-earbuds-chip {
+    border-color: rgba(168, 85, 247, 0.4) !important;
+    background: rgba(168, 85, 247, 0.15) !important;
+    color: #DDD6FE !important;
+  }
+
+  .header-action-chip.btn-earbuds-chip.active {
+    background: linear-gradient(135deg, #8B5CF6, #6366F1) !important;
+    color: #FFFFFF !important;
+    border-color: #A78BFA !important;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+  }
+
+  .view-section {
+    display: none;
+    animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .view-section.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* General Buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+    color: #FFFFFF;
+    border: none;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    touch-action: manipulation;
+  }
+
+  .btn-primary:hover, .btn-primary:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-ctrl {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    touch-action: manipulation;
+    white-space: nowrap;
+  }
+
+  .btn-ctrl:hover, .btn-ctrl:active {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .btn-success {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    color: #FFFFFF !important;
+    border: none;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    touch-action: manipulation;
+  }
+
+  .btn-success:hover, .btn-success:active {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+  }
+
+  /* Table Editor */
+  .table-card-container {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .table-toolbar-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-heading);
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #FFFFFF;
+  }
+
+  .quiz-editor-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: rgba(11, 13, 23, 0.6);
+    max-height: 480px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .quiz-editor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .quiz-editor-table th {
+    background: #151A30;
+    color: #94A3B8;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .quiz-editor-table td {
+    padding: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: top;
+  }
+
+  .quiz-editor-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .table-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: #FFFFFF;
+    padding: 8px 10px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .table-input:focus {
+    border-color: var(--primary);
+    background: #1C2242;
+  }
+
+  .table-select-ans {
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #10B981;
+    font-weight: 700;
+    padding: 7px 8px;
+    outline: none;
+    font-family: var(--font-heading);
+    font-size: 13px;
+  }
+
+  .btn-del-row {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #FCA5A5;
+    border-radius: 4px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .btn-del-row:hover {
+    background: #EF4444;
+    color: #FFFFFF;
+  }
+
+  .table-footer-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 10px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .modal-overlay.active {
+    display: flex;
+  }
+
+  .modal-card {
+    background: #161B2E;
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 820px;
+    padding: 22px;
+    box-shadow: var(--shadow-md);
+    animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .shake-anim {
+    animation: shake 0.4s ease-in-out;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-8px); }
+    40%, 80% { transform: translateX(8px); }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .modal-title {
+    font-family: var(--font-heading);
+    font-size: 17px;
+    font-weight: 700;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .modal-scroll-body {
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Cloud Tests Dashboard & Subject Tabs */
+  .dashboard-hero {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.18));
+    border: 1px solid var(--border-glow);
+    border-radius: var(--radius-lg);
+    padding: 18px 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .subject-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 14px 2px;
+    margin-bottom: 16px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .subject-filter-bar::-webkit-scrollbar {
+    height: 4px;
+  }
+  .subject-filter-bar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 4px;
+  }
+
+  .subject-tab-pill {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .subject-tab-pill:hover, .subject-tab-pill:active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-main);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  .subject-tab-pill.active {
+    background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+    color: #FFFFFF;
+    border-color: transparent;
+    box-shadow: 0 4px 14px var(--primary-glow);
+  }
+
+  .subject-tab-count {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 10.5px;
+  }
+
+  .quiz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .quiz-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    transition: all 0.25s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .quiz-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-glow);
+    box-shadow: var(--shadow-md);
+  }
+
+  .quiz-subject-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+  }
+
+  /* Shimmer Skeleton Loaders */
+  .skeleton-card {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    height: 130px;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Toast Notification */
+  .toast-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #161B2E;
+    border: 1px solid var(--primary);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    color: #FFFFFF;
+    padding: 10px 20px;
+    border-radius: var(--radius-full);
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 10000;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast-notification.active {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* CBT Quiz Player Layout */
+  .quiz-player-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 16px;
+  }
+
+  .player-main-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 22px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 480px;
+  }
+
+  .player-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .player-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .q-badge {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    background: rgba(99, 102, 241, 0.15);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    white-space: nowrap;
+  }
+
+  .btn-mic-google {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #FCA5A5;
+  }
+
+  .btn-mic-google.active {
+    background: #DC2626;
+    color: #FFFFFF;
+    border-color: #EF4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+  }
+
+  .timer-pill {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-amber);
+    background: rgba(245, 158, 11, 0.12);
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    white-space: nowrap;
+  }
+
+  .voice-hud-banner {
+    background: rgba(30, 27, 46, 0.92);
+    border: 1px solid #8B5CF6;
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #EDE9FE;
+    margin-bottom: 16px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.25);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .voice-wave-anim {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    height: 18px;
+  }
+
+  .voice-wave-bar {
+    width: 3px;
+    background: #A78BFA;
+    border-radius: 2px;
+    animation: wavePulse 0.7s ease-in-out infinite alternate;
+  }
+  .voice-wave-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .voice-wave-bar:nth-child(2) { height: 16px; animation-delay: 0.15s; }
+  .voice-wave-bar:nth-child(3) { height: 12px; animation-delay: 0.3s; }
+  .voice-wave-bar:nth-child(4) { height: 18px; animation-delay: 0.45s; }
+  .voice-wave-bar:nth-child(5) { height: 10px; animation-delay: 0.6s; }
+
+  @keyframes wavePulse {
+    0% { transform: scaleY(0.4); opacity: 0.5; }
+    100% { transform: scaleY(1.2); opacity: 1; }
+  }
+
+  .q-body {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .q-body.animating {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  .q-text {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.6;
+    color: #FFFFFF;
+    margin-bottom: 16px;
+    white-space: pre-line;
+    word-break: break-word;
+    transition: color 0.2s ease;
+  }
+
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+    transition: opacity 0.2s ease;
+  }
+
+  .opt-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    color: #F8FAFC;
+    font-family: var(--font-body);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    touch-action: manipulation;
+    word-break: break-word;
+  }
+
+  .opt-btn:hover:not(:disabled), .opt-btn:active:not(:disabled) {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.4);
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  .opt-btn:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .opt-btn.selected-correct {
+    background: rgba(16, 185, 129, 0.22) !important;
+    border-color: #10B981 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+    animation: popSuccess 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .opt-btn.selected-wrong {
+    background: rgba(239, 68, 68, 0.22) !important;
+    border-color: #EF4444 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.45);
+    animation: shake 0.3s ease-in-out;
+  }
+
+  @keyframes popSuccess {
+    0% { transform: scale(0.96); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  .opt-key {
+    width: 26px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    font-family: var(--font-heading);
+    flex-shrink: 0;
+  }
+
+  .solution-box {
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 18px;
+    display: none;
+  }
+
+  .sol-header {
+    font-family: var(--font-heading);
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent-purple);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sol-text {
+    color: #E2E8F0;
+    font-size: 13.5px;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+
+  .player-actions-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sidebar-palette-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .palette-title {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    max-height: 380px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .palette-btn {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+  }
+
+  .palette-btn.current {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  .palette-btn.answered {
+    background: #10B981 !important;
+    color: #FFFFFF !important;
+    border-color: #059669 !important;
+  }
+
+  .palette-btn.marked {
+    background: #8B5CF6 !important;
+    color: #FFFFFF !important;
+    border-color: #7C3AED !important;
+  }
+
+  .shortcuts-badge {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .shortcuts-badge kbd {
+    background: #151A30;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: #A5B4FC;
+    font-family: monospace;
+    font-size: 11px;
+  }
+
+  /* Results Card */
+  .results-card {
+    max-width: 600px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 28px 20px;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+  }
+
+  .score-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent-green) 0% 80%, rgba(255,255,255,0.08) 80% 100%);
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-circle-inner {
+    width: 108px;
+    height: 108px;
+    border-radius: 50%;
+    background: var(--bg-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-num {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 800;
+    color: #FFFFFF;
+  }
+
+  .score-total {
+    font-size: 11.5px;
+    color: var(--accent-cyan);
+    font-weight: 600;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .stat-box {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 8px;
+  }
+
+  .stat-box-num {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+
+  /* =========================================================================
+     📱 ULTRA RESPONSIVE MOBILE & TABLET MEDIA QUERIES
+     ========================================================================= */
+  @media (max-width: 900px) {
+    .portal-wrapper {
+      padding: 10px 8px;
+    }
+    .quiz-player-layout {
+      grid-template-columns: 1fr;
+    }
+    .sidebar-palette-card {
+      margin-top: 6px;
+    }
+    .palette-grid {
+      grid-template-columns: repeat(8, 1fr);
+      max-height: 240px;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .portal-header-container {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    .portal-nav-top {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .brand {
+      justify-content: center;
+    }
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      width: 100%;
+    }
+    .nav-tab-btn {
+      padding: 7px 6px;
+      font-size: 12px;
+      justify-content: center;
+    }
+    .header-actions-bar {
+      padding-top: 6px;
+      gap: 6px;
+    }
+    .header-action-chip {
+      padding: 6px 10px;
+      font-size: 11px;
+    }
+    .dashboard-hero {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 16px 12px;
+    }
+    .dashboard-hero > div:last-child {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      gap: 8px !important;
+    }
+    .dashboard-hero input, .dashboard-hero button {
+      width: 100% !important;
+    }
+    .quiz-grid {
+      grid-template-columns: 1fr;
+    }
+    .table-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .table-footer-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      text-align: center;
+    }
+    .table-footer-bar button {
+      width: 100%;
+    }
+    .player-main-card {
+      padding: 16px 14px;
+    }
+    .player-header-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .player-header-bar > div:first-child {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+    .player-controls-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+      width: 100%;
+      gap: 6px;
+    }
+    .player-controls-row button {
+      width: 100%;
+      padding: 8px 4px;
+      font-size: 11px;
+    }
+    .options-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    .opt-btn {
+      padding: 12px 14px;
+      font-size: 13.5px;
+    }
+    .player-actions-footer {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .player-actions-footer > div {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .player-actions-footer button {
+      width: 100%;
+      justify-content: center;
+      padding: 9px 4px;
+      font-size: 11px;
+    }
+    .shortcuts-badge {
+      display: none;
+    }
+    .palette-grid {
+      grid-template-columns: repeat(6, 1fr);
+    }
+    .modal-card {
+      padding: 16px 14px;
+    }
+    .modal-footer > div {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .modal-footer button {
+      width: 100%;
+    }
+
+
+  }
+
+  @media (max-width: 480px) {
+
+
+
+  }
+
+  @media (max-width: 400px) {
+    .palette-grid {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+
+  }
+  
+</style>
+</head>
+
+<body>
+
+
+  <!-- Toast Notification for Instant Feedback -->
+  <div class="toast-notification" id="app-toast">
+    <span id="app-toast-icon">⚡</span>
+    <span id="app-toast-text">Ready</span>
+  </div>
+
+  <!-- PORTAL WRAPPER -->
+  <div class="portal-wrapper">
+
+    <!-- TOP HEADER WITH QUICK ACTIONS BAR -->
+    <header class="portal-header-container">
+      
+      <!-- Top Row: Brand & View Switcher Tabs -->
+      <div class="portal-nav-top">
+        <div class="brand" onclick="switchView('table')">
+          <div class="brand-icon">⚡</div>
+          <div>
+            <div class="brand-title">COPY PRO</div>
+            <span class="brand-badge">Blogger Edition</span>
+          </div>
+        </div>
+
+        <div class="nav-tabs">
+          <button class="nav-tab-btn active" id="tab-table" onclick="switchView('table')">
+            🎮 Laptop Quiz
+          </button>
+          <button class="nav-tab-btn" id="tab-dashboard" onclick="switchView('dashboard')">
+            ☁️ Cloud Tests
+          </button>
+          <button class="nav-tab-btn" id="tab-player" onclick="switchView('player')" style="display:none;">
+            🎯 Active Quiz
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Top Action Chips -->
+      <div class="header-actions-bar">
+        <button class="header-action-chip btn-play-chip" onclick="startQuizFromTable()" title="Play CBT Quiz">
+          🎮 Play Quiz
+        </button>
+        <button class="header-action-chip" onclick="openLoadLocalModal()" title="Load Local Quiz">
+          📁 Load Local
+        </button>
+        <button class="header-action-chip" onclick="saveLocalQuizzes()" title="Save to Local Storage / Download JSON">
+          💾 Save Local
+        </button>
+        <button class="header-action-chip btn-sync-chip" onclick="requireAdminAuth(openCloudSyncModal)" title="Upload Table Questions to Firebase (Admin Protected)">
+          🔥 Cloud Sync 🔒
+        </button>
+        <button class="header-action-chip btn-history-chip" onclick="requireAdminAuth(openCloudHistoryModal)" title="View &amp; Manage Firebase Tests (Admin Protected)">
+          ☁️ Cloud History 🔒
+        </button>
+        <button class="header-action-chip btn-bulk-chip" onclick="openBulkModal()" title="Bulk Import from Excel / Text">
+          📋 Bulk Import
+        </button>
+        <button class="header-action-chip btn-earbuds-chip" id="btn-header-earbuds" onclick="openEarbudsModal()" title="Realme Buds T110 Setup &amp; Test">
+          🎧 Buds Mode
+        </button>
+        <button class="header-action-chip btn-admin-chip" id="btn-admin-toggle" onclick="toggleAdminLogin()" title="Admin Mode Security">
+          🛡️ Admin Login 🔒
+        </button>
+        <button class="header-action-chip" onclick="clearAllTableRows()" style="color:#FCA5A5;" title="Clear Table">
+          🧹 Clear All
+        </button>
+      </div>
+
+    </header>
+
+    <!-- =========================================================================
+         VIEW 1: LAPTOP QUIZ TABLE & CREATOR
+         ========================================================================= -->
+    <section class="view-section active" id="view-table">
+      <div class="table-card-container">
+        
+        <div class="table-toolbar">
+          <div class="table-toolbar-title">
+            <span>🎮 Local Laptop Quiz Player &amp; Creator</span>
+            <span id="lbl-table-count" style="font-size:12px; color:var(--accent-cyan); font-weight:600; background:rgba(6,182,212,0.15); padding:2px 10px; border-radius:12px;">0 Questions</span>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button class="btn-primary" onclick="addNewEmptyRow()">➕ Add Row</button>
+            <button class="btn-success" onclick="startQuizFromTable()">🎮 Play Quiz</button>
+          </div>
+        </div>
+
+        <!-- Interactive Question Table -->
+        <div class="quiz-editor-table-wrap">
+          <table class="quiz-editor-table" id="editor-table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align:center;">#</th>
+                <th style="min-width: 320px;">Question</th>
+                <th style="min-width: 140px;">A</th>
+                <th style="min-width: 140px;">B</th>
+                <th style="min-width: 140px;">C</th>
+                <th style="min-width: 140px;">D</th>
+                <th style="width: 70px; text-align:center;">Ans</th>
+                <th style="min-width: 220px;">Solution</th>
+                <th style="width: 50px; text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="editor-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="table-footer-bar">
+          <button class="btn-ctrl" onclick="addNewEmptyRow()">➕ Add Quiz Question</button>
+          <span style="font-size:12px; color:var(--text-muted);">Paste data via Bulk Import or edit cells directly. Click Play Quiz to start CBT exam!</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         VIEW 2: CLOUD TESTS DASHBOARD (STUDENTS SEE 'START' ONLY, ADMIN SEES 'EDIT')
+         ========================================================================= -->
+    <section class="view-section" id="view-dashboard">
+      <div class="dashboard-hero">
+        <div>
+          <h1 style="font-family:var(--font-heading); font-size:22px; margin-bottom:4px;">☁️ Cloud Quiz Database</h1>
+          <p style="color:var(--text-muted); font-size:13px;">All test sets in your Firebase Firestore cloud database (<span style="color:var(--accent-cyan); font-weight:600;" id="lbl-total-db-count">0 Tests</span> across all subjects).</p>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input class="table-input" id="input-cloud-search" oninput="onSearchCloudTests(this.value)" placeholder="🔍 Search Topic / Subject..." style="width:190px;" type="text" />
+          <input class="table-input" id="input-test-code" placeholder="Test Code (e.g. P01)" style="width:140px;" type="text" />
+          <button class="btn-primary" onclick="launchByTestCode()">Launch</button>
+          <button class="btn-ctrl" onclick="fetchCloudTopics(true)">🔄 Refresh</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         VIEW 4: CBT QUIZ PLAYER
+         ========================================================================= -->
+    <section class="view-section" id="view-player">
+      <div class="quiz-player-layout">
+        <div class="player-main-card">
+          <div>
+            <div class="player-header-bar">
+              <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px;">
+                <span class="q-badge" id="lbl-q-counter">Question 1 / 10</span>
+                <div class="timer-pill" id="lbl-timer">⏱️ 15:00</div>
+              </div>
+              
+              <div class="player-controls-row" style="width:100%; margin-top:4px;">
+                <button class="btn-ctrl" id="btn-tts" onclick="toggleAudioRead()" title="AI Voice Read Aloud [T]">
+                  🗣️ AI Voice [T]
+                </button>
+                <button class="btn-ctrl" id="btn-speed" onclick="cycleVoiceSpeed()" title="Change AI Voice Speed">
+                  ⚡ 1.0x
+                </button>
+                <button class="btn-ctrl btn-mic-google" id="btn-mic" onclick="toggleGoogleMic()" title="Google Voice Answer [S / Shift]">
+                  🎙️ Mic [S]
+                </button>
+                <button class="btn-ctrl btn-earbuds-chip" id="btn-earbuds" onclick="openEarbudsModal()" title="Realme Buds T110 / Bluetooth Earbuds Setup &amp; Test">
+                  🎧 Buds: ON
+                </button>
+                <button class="btn-ctrl" id="btn-lang" onclick="cycleLang()" title="Toggle Language [L]">
+                  🌐 Both [L]
+                </button>
+              </div>
+            </div>
+            <!-- Voice HUD Banner with Animated Soundwave Visualizer -->
+            <div class="voice-hud-banner" id="voice-hud">
+              <div class="voice-wave-anim">
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+                <span class="voice-wave-bar"></span>
+              </div>
+              <span id="voice-hud-text">Neural Listening: Say "Option A/B", "1, 2", or Speak Option Name...</span>
+            </div>
+
+            <!-- Question Body -->
+            <div class="q-body">
+              <div class="q-text" id="lbl-q-text">Loading question...</div>
+            </div>
+
+            <!-- 4 Options Grid -->
+            <div class="options-grid" id="options-container">
+              <button class="opt-btn" id="opt-btn-0" onclick="selectOption(0)">
+                <span class="opt-key">A / 1</span>
+                <span id="opt-text-0">Option A</span>
+              </button>
+              <button class="opt-btn" id="opt-btn-1" onclick="selectOption(1)">
+                <span class="opt-key">B / 2</span>
+                <span id="opt-text-1">Option B</span>
+              </button>
+              <button class="opt-btn" id="opt-btn-2" onclick="selectOption(2)">
+                <span class="opt-key">C / 3</span>
+                <span id="opt-text-2">Option C</span>
+              </button>
+              <button class="opt-btn" id="opt-btn-3" onclick="selectOption(3)">
+                <span class="opt-key">D / 4</span>
+                <span id="opt-text-3">Option D</span>
+              </button>
+            </div>
+
+            <!-- Explanation & Solution Box -->
+            <div class="solution-box" id="sol-box">
+              <div class="sol-header">
+                <span>💡 Important Details &amp; Solution</span>
+                <button class="btn-ctrl" onclick="narrateExplanation()" style="padding:2px 8px; font-size:11px;">🗣️ Read Details</button>
+              </div>
+              <div class="sol-text" id="lbl-sol-text">No explanation provided.</div>
+            </div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div class="player-actions-footer">
+            <button class="btn-ctrl" onclick="clearResponse()">🧹 Clear Answer [C]</button>
+            <button class="btn-ctrl" onclick="toggleMarkReview()">⭐ Mark for Review [M]</button>
+            
+            <div style="display:flex; gap:8px;">
+              <button class="btn-ctrl" onclick="prevQuestion()">⬅️ Prev [P]</button>
+              <button class="btn-ctrl" onclick="nextQuestion()">Next [N] ➡️</button>
+              <button class="btn-success" onclick="submitQuizConfirm()">🚀 Submit Test</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Palette Sidebar -->
+        <div class="sidebar-palette-card">
+          <div class="palette-title">
+            <span>Question Grid</span>
+            <span id="lbl-palette-score" style="font-size:12px; color:var(--text-muted);">0 Solved</span>
+          </div>
+          <div class="palette-grid" id="palette-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         VIEW 5: RESULTS
+         ========================================================================= -->
+    <section class="view-section" id="view-results">
+      <div class="results-card">
+        <h2 style="font-family:var(--font-heading); font-size:24px; margin-bottom:6px;">🎉 Quiz Completed!</h2>
+        <p id="lbl-result-topic" style="color:var(--text-muted); margin-bottom:20px; font-size:13.5px;">Performance Summary</p>
+
+        <div class="score-circle">
+          <div class="score-circle-inner">
+            <div class="score-num" id="res-score">8/10</div>
+            <div class="score-total" id="res-percent">80% Accuracy</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-box-num" id="res-correct" style="color:var(--accent-green);">8</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Correct</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-num" id="res-wrong" style="color:var(--accent-red);">2</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Incorrect</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box-num" id="res-time" style="color:var(--accent-cyan);">02:45</div>
+            <div style="font-size:11px; text-transform:uppercase; color:var(--text-muted);">Time Taken</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="restartQuiz()">🔄 Retake Test</button>
+          <button class="btn-ctrl" onclick="switchView('table')">🎮 Back to Table Editor</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- MODALS --><div class="modal-overlay" id="earbuds-modal">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title"><span>🎧 Realme Buds T110 Touch Controls</span></div>
+        <button class="btn-ctrl" onclick="closeModal('earbuds-modal')" style="padding:4px 10px;">✕</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:14px;">
+        <div style="background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.4); border-radius:8px; padding:12px; font-size:13px; color:#EDE9FE;">
+          <div style="font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            <span id="earbuds-status-dot" style="color:#10B981; font-size:16px;">●</span> Status: <span id="earbuds-status-lbl" style="color:#A78BFA; font-weight:700;">Active &amp; Ready</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-muted);">MediaSession notification active in phone status bar. Touch your Realme Buds T110 now:</p>
+        </div>
+
+        <!-- Live Touch Diagnostic Display -->
+        <div id="earbud-diagnostic-box" style="background:#0F1322; border:1px dashed var(--border-color); border-radius:8px; padding:14px; text-align:center; min-height:80px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:all 0.2s;">
+          <span id="earbud-diag-title" style="font-size:14px; font-weight:700; color:var(--accent-cyan);">👆 Touch Your Realme Earbuds Now...</span>
+          <span id="earbud-diag-desc" style="font-size:12px; color:var(--text-dim); margin-top:4px;">Double-Tap: Mic | Right Hold: Next ➡️ | Left Hold: Prev ⬅️</span>
+        </div>
+
+        <!-- Microphone Device Source Selector (Buds vs PC / Laptop) -->
+        <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+            <span>🎙️ Microphone Source (Buds vs PC)</span>
+            <button class="btn-ctrl" onclick="updateAudioInputDevices()" style="padding:2px 8px; font-size:11px;">🔄 Scan Devices</button>
+          </div>
+          <select class="table-select-ans" id="earbud-mic-device-select" onchange="setAudioInputDevice(this.value)" style="width:100%; color:#FFF; font-size:12.5px; background:var(--bg-input);">
+            <option value="default">⚙️ Auto-Detect Default Microphone</option>
+          </select>
+          <span style="font-size:11px; color:var(--text-dim);">Switch between your <b>Realme Buds T110 (Bluetooth)</b> and <b>Laptop / PC Internal Mic</b>.</span>
+        </div>
+
+        <div style="font-size:12px; color:var(--text-muted); line-height:1.7; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px;">
+          <div>👆👆 <b>Double-Tap (Either Bud):</b> Toggle Mic 🎙️ &amp; speak your answer</div>
+          <div>⏳👉 <b>Right Bud Long Press / Hold:</b> Next Question ➡️</div>
+          <div>👈⏳ <b>Left Bud Long Press / Hold:</b> Previous Question ⬅️</div>
+          <div>🗣️ <b>Voice:</b> "Use Laptop Mic" / "Use Buds Mic"</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ctrl" onclick="testEarbudSimulation('double')" style="font-size:11px;">🧪 Test Mic (Double-Tap)</button>
+        <button class="btn-ctrl" onclick="testEarbudSimulation('right')" style="font-size:11px;">🧪 Test Right Bud (Next ➡️)</button>
+        <button class="btn-ctrl" onclick="testEarbudSimulation('left')" style="font-size:11px;">🧪 Test Left Bud (Prev ⬅️)</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-primary" onclick="initEarbudsEngine(); closeModal('earbuds-modal');">Connect &amp; Ready 🎧</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURE DATABASE-BACKED ADMIN AUTH MODAL (SHA-256 ENCRYPTED) -->
+  <div class="modal-overlay" id="admin-auth-modal">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title"><span id="admin-modal-title">🔐 Admin Authentication</span></div>
+        <button class="btn-ctrl" onclick="closeModal('admin-auth-modal')" style="padding:4px 10px;">✕</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+        <p id="admin-modal-desc" style="font-size:12.5px; color:var(--text-muted);">Enter Cloud Database Admin Password to access Admin Tools:</p>
+        <input class="table-input" id="admin-pass-input" onkeydown="if(event.key==='Enter')verifyAdminPassword()" placeholder="Enter Master Admin Password..." type="password" style="font-size:14px; letter-spacing:1px;" />
+        <span id="admin-pass-error" style="font-size:12px; color:var(--accent-red); font-weight:600;"></span>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ctrl" id="btn-admin-change-pin" onclick="changeAdminPassword()" style="font-size:11px; padding:4px 8px;" title="Change Cloud Database Admin Password">🔑 Change Password</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ctrl" onclick="closeModal('admin-auth-modal')">Cancel</button>
+          <button class="btn-primary" id="btn-admin-unlock" onclick="verifyAdminPassword()">Unlock 🔓</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cloud-sync-modal">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <div class="modal-title"><span>🔥 Cloud Sync to Firebase</span></div>
+        <button class="btn-ctrl" onclick="closeModal('cloud-sync-modal')" style="padding:4px 10px;">✕</button>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+        <div>
+          <label style="font-size:11.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Topic Name</label>
+          <input class="table-input" id="sync-topic" placeholder="e.g. Percentage (1-6)" type="text" value="Percentage (1-6)" />
+        </div>
+        <div>
+          <label style="font-size:11.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Subject</label>
+          <input class="table-input" id="sync-subject" placeholder="e.g. Mathematics" type="text" value="Mathematics" />
+        </div>
+        <div>
+          <label style="font-size:11.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Test Code</label>
+          <input class="table-input" id="sync-test-code" placeholder="e.g. P01" type="text" value="P01" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span id="sync-status-msg" style="font-size:12px; color:var(--text-dim);">Ready to upload</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ctrl" onclick="closeModal('cloud-sync-modal')">Cancel</button>
+          <button class="btn-sync" onclick="performCloudSync()">🚀 Upload to Firebase</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cloud-history-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><span>☁️ Cloud History (Firebase Tests)</span></div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-ctrl" onclick="loadCloudHistoryList(true)">🔄 Refresh</button>
+          <button class="btn-ctrl" onclick="closeModal('cloud-history-modal')" style="padding:4px 8px;">✕</button>
+        </div>
+      </div>
+      <div class="modal-scroll-body">
+        <table class="quiz-editor-table">
+          <thead>
+            <tr><th>Topic</th><th>Subject</th><th>Code</th><th>Questions</th><th style="text-align:center;">Action</th></tr>
+          </thead>
+          <tbody id="cloud-history-tbody"></tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <span style="font-size:11.5px; color:var(--text-muted);">Click "Edit" to load in table or "Play" to start test.</span>
+        <button class="btn-ctrl" onclick="closeModal('cloud-history-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="load-local-modal">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <div class="modal-title"><span>📁 Load Local Quiz</span></div>
+        <button class="btn-ctrl" onclick="closeModal('load-local-modal')" style="padding:4px 10px;">✕</button>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Upload JSON / Excel / Text / SQLite (.db) File:</label>
+        <input accept=".json,.txt,.csv,.tsv,.xlsx,.xls,.db,.sqlite,.sqlite3" id="local-file-input" onchange="handleLocalFileUpload(event)" style="background:var(--bg-input); padding:8px; border-radius:6px; border:1px solid var(--border-color); width:100%; color:#FFF; font-size:13px;" type="file" />
+      </div>
+      <div class="modal-scroll-body">
+        <label style="font-size:11.5px; color:var(--text-muted); font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">Saved in Browser Storage:</label>
+        <div id="local-storage-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+      <div class="modal-footer">
+        <span></span>
+        <button class="btn-ctrl" onclick="closeModal('load-local-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="bulk-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title"><span>📋 Laptop Quiz Bulk Import</span></div>
+        <button class="btn-ctrl" onclick="closeModal('bulk-modal')" style="padding:4px 10px;">✕</button>
+      </div>
+      <div style="background:rgba(245,158,11,0.1); border:1px dashed rgba(245,158,11,0.4); border-radius:8px; padding:8px 12px; font-size:12px; color:#FDE68A; margin-bottom:12px;">
+        💡 <b>Expected Format:</b> Question | Option A | Option B | Option C | Option D | Answer | Solution
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:12px; color:var(--text-muted); font-weight:600;">Delimiter:</span>
+          <select class="table-select-ans" id="bulk-delimiter" style="color:#FFFFFF;">
+            <option value="auto">Auto-Detect (Excel / CSV / Pipe / Tab)</option>
+            <option value="\t">Tab (Excel / Sheets)</option>
+            <option value="|">Pipe (|)</option>
+            <option value=",">Comma (,)</option>
+            <option value=";">Semicolon (;)</option>
+          </select>
+          <label style="display:flex; align-items:center; gap:5px; font-size:12px; color:#CBD5E1; cursor:pointer;">
+            <input checked="checked" id="bulk-skip-header" type="checkbox" /> Skip Header
+          </label>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-ctrl" onclick="pasteFromClipboard()">📋 Paste</button>
+          <button class="btn-ctrl" onclick="document.getElementById('modal-bulk-input').value=''">🧹 Clear</button>
+        </div>
+      </div>
+      <textarea class="modal-scroll-body" id="modal-bulk-input" placeholder="Paste your data directly from Excel, Google Sheets, or text..." style="width:100%; min-height:200px; background:#0F1322; border:1px solid var(--border-color); border-radius:8px; color:#FFF; font-family:Consolas,monospace; font-size:12.5px; padding:10px; outline:none; resize:vertical;"></textarea>
+      <div class="modal-footer">
+        <span style="font-size:12px; color:var(--text-dim);">ℹ️ Paste data and click Import</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ctrl" onclick="closeModal('bulk-modal')">Cancel</button>
+          <button class="btn-success" onclick="processBulkImport()">✅ Import Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+<script>
+
+  // 🛡️ GLOBAL CRASH-PROOF ERROR BOUNDARY
+  window.addEventListener('error', function(e) {
+    console.warn("Handled runtime event:", e.message);
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    console.warn("Handled async promise event:", e.reason);
+  });
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBPwqgAMR4Muj41OI7UyxSAu3N8aA9tDVE",
+    authDomain: "simple-q-b7ad7.firebaseapp.com",
+    projectId: "simple-q-b7ad7",
+    storageBucket: "simple-q-b7ad7.firebasestorage.app",
+    messagingSenderId: "327539671354",
+    appId: "1:327539671354:android:9afdbb9881d7d961f29003"
+  };
+
+  let db = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    
+    // Pure live online real-time stream (Eliminates multi-tab & mobile IndexedDB offline locks)
+    if (db && db.settings) {
+      db.settings({
+        experimentalAutoDetectLongPolling: true,
+        merge: true
+      });
+    }
+  } catch (err) {
+    console.warn("Firebase init notice:", err);
+  }
+
+  async function ensureFirestoreConnected() {
+    if (!db) return false;
+    try {
+      await db.enableNetwork();
+    } catch(e) {}
+    return true;
+  }
+
+  window.addEventListener('online', () => {
+    if (db) db.enableNetwork().catch(e => {});
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && db) {
+      db.enableNetwork().catch(e => {});
+    }
+  });
+
+  let tableQuestions = [
+    {
+      question: "According to the data discussed, how many national parks were there in India prior to the Wildlife Protection Act of 1972 (up to 1970), and how many are there currently? / ক্লাসে আলোচিত তথ্য অনুযায়ী, ১৯৭২ সালের বন্যপ্রাণী সংরক্ষণ আইনের পূর্বে (১৯৭০ সাল পর্যন্ত) ভারতে কয়টি জাতীয় উদ্যান ছিল এবং বর্তমানে মোট কয়টি জাতীয় উদ্যান রয়েছে?",
+      optionA: "5 and 107 / ৫টি এবং ১০৭টি",
+      optionB: "10 and 105 / ১০টি এবং ১০৫টি",
+      optionC: "5 and 106 / ৫টি এবং ১০৬টি",
+      optionD: "3 and 107 / ৩টি এবং ১০৭টি",
+      answer: "A",
+      solution: "English: Up to 1970, India had only 5 National Parks. The current total in the source is 107. | বাংলা: ১৯৭০ সাল পর্যন্ত ভারতে মাত্র ৫টি জাতীয় উদ্যান ছিল। উৎস অনুযায়ী বর্তমানে মোট ১০৭টি জাতীয় উদ্যান রয়েছে।"
+    },
+    {
+      question: "Which of the following national parks is NOT located in the Andaman and Nicobar Islands? / নিচের কোন জাতীয় উদ্যানটি আন্দামান ও নিকোবর দ্বীপপুঞ্জে অবস্থিত নয়?",
+      optionA: "Galathea Bay National Park / গালাথিয়া বে জাতীয় উদ্যান",
+      optionB: "Campbell Bay National Park / ক্যাম্পবেল বে জাতীয় উদ্যান",
+      optionC: "Saddle Peak National Park / স্যাডেল পিক জাতীয় উদ্যান",
+      optionD: "Papikonda National Park / পাপিকোন্ডা জাতীয় উদ্যান",
+      answer: "D",
+      solution: "English: Papikonda National Park is not in Andaman & Nicobar; it is associated with Andhra Pradesh."
+    }
+  ];
+
+  let allCloudTopics = [];
+  let currentSubjectFilter = "ALL";
+  let currentSearchQuery = "";
+  let currentQuizData = [];
+  let currentIdx = 0;
+  let userAnswers = {};
+  let markedForReview = new Set();
+  let timerSeconds = 900;
+  let timerInterval = null;
+  let langMode = "both";
+  let audioReadEnabled = false;
+  let voiceSpeed = 1.0;
+  let micEnabled = false;
+  let recognition = null;
+  let audioCtx = null;
+  let isFetchingCloud = false;
+
+  // Realme Buds T110 System Audio Focus Carrier Engine
+  let earbudAudioEl = null;
+  let earbudWavBlobUrl = null;
+  let isEarbudsActive = false;
+  let isActionDebouncing = false;
+
+  // ==========================================================================
+  // REALME BUDS T110 HARDWARE AVRCP BLUETOOTH ENGINE
+  // ==========================================================================
+  function generateSilentWavBlob(seconds = 8) {
+    const sampleRate = 8000;
+    const numChannels = 1;
+    const numSamples = sampleRate * seconds;
+    const buffer = new ArrayBuffer(44 + numSamples * 2);
+    const view = new DataView(buffer);
+
+    function writeStr(offset, str) {
+      for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+    }
+
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + numSamples * 2, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, numSamples * 2, true);
+
+    // Imperceptible audio carrier dither
+    for (let i = 0; i < numSamples; i++) {
+      view.setInt16(44 + i * 2, (i % 2 === 0 ? 2 : -2), true);
+    }
+
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+
+  function initEarbudsEngine() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      if (!earbudAudioEl) {
+        if (!earbudWavBlobUrl) {
+          const blob = generateSilentWavBlob(8);
+          earbudWavBlobUrl = URL.createObjectURL(blob);
+        }
+
+        earbudAudioEl = document.createElement('audio');
+        earbudAudioEl.id = 'copypro-earbuds-carrier';
+        earbudAudioEl.src = earbudWavBlobUrl;
+        earbudAudioEl.loop = true;
+        earbudAudioEl.volume = 0.08;
+        earbudAudioEl.setAttribute('playsinline', 'true');
+        earbudAudioEl.setAttribute('webkit-playsinline', 'true');
+        document.body.appendChild(earbudAudioEl);
+
+        earbudAudioEl.addEventListener('pause', () => {
+          // Keep audio carrier alive so Android/Windows notification never vanishes!
+          if (isEarbudsActive) {
+            setTimeout(() => {
+              if (earbudAudioEl && earbudAudioEl.paused) {
+                earbudAudioEl.play().catch(e => {});
+              }
+            }, 80);
+          }
+        });
+      }
+
+      earbudAudioEl.play().then(() => {
+        isEarbudsActive = true;
+        setupMediaSession();
+        updateEarbudsUI(true);
+      }).catch(err => {
+        console.log("Audio carrier play error:", err);
+      });
+
+      // Warm up Speech Recognition permission in background
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        try {
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
+              s.getTracks().forEach(t => t.stop());
+            }).catch(e => {});
+          }
+        } catch(e) {}
+      }
+    } catch(err) {
+      console.warn("Earbuds init exception:", err);
+    }
+  }
+
+  function updateEarbudsUI(active) {
+    const btn = document.getElementById('btn-earbuds');
+    const headerBtn = document.getElementById('btn-header-earbuds');
+    const statusLbl = document.getElementById('earbuds-status-lbl');
+    const statusDot = document.getElementById('earbuds-status-dot');
+
+    if (btn) {
+      if (active) {
+        btn.classList.add('active');
+        btn.innerHTML = "🎧 Buds: ON";
+      } else {
+        btn.classList.remove('active');
+        btn.innerHTML = "🎧 Buds: OFF";
+      }
+    }
+    if (headerBtn) {
+      if (active) {
+        headerBtn.classList.add('active');
+        headerBtn.innerHTML = "🎧 Buds: Ready";
+      } else {
+        headerBtn.classList.remove('active');
+        headerBtn.innerHTML = "🎧 Buds Mode";
+      }
+    }
+    if (statusLbl) statusLbl.innerText = active ? "Active & Ready 🟢" : "Disconnected ⚪";
+    if (statusDot) statusDot.style.color = active ? "#10B981" : "#94A3B8";
+  }
+
+  let availableAudioInputs = [];
+  let selectedAudioDeviceId = localStorage.getItem('copypro_selected_mic_id') || 'default';
+  let activeMicStream = null;
+
+  async function updateAudioInputDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      // Prompt userMedia permission briefly if labels are empty
+      try {
+        const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        tempStream.getTracks().forEach(t => t.stop());
+      } catch(err) {}
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      availableAudioInputs = devices.filter(d => d.kind === 'audioinput');
+      
+      const modalSelectEl = document.getElementById('earbud-mic-device-select');
+      if (!modalSelectEl) return;
+      
+      modalSelectEl.innerHTML = '';
+      
+      const defaultOpt = document.createElement('option');
+      defaultOpt.value = 'default';
+      defaultOpt.innerText = '⚙️ Auto-Detect Default Microphone';
+      if (selectedAudioDeviceId === 'default') defaultOpt.selected = true;
+      modalSelectEl.appendChild(defaultOpt);
+
+      availableAudioInputs.forEach((dev, idx) => {
+        const opt = document.createElement('option');
+        opt.value = dev.deviceId;
+        let rawLabel = dev.label || `Microphone ${idx + 1}`;
+        let lower = rawLabel.toLowerCase();
+        
+        if (lower.includes('bluetooth') || lower.includes('buds') || lower.includes('hands-free') || lower.includes('realme') || lower.includes('headset') || lower.includes('airpods') || lower.includes('wireless')) {
+          opt.innerText = `🎧 ${rawLabel} (Earbuds / Bluetooth)`;
+        } else {
+          opt.innerText = `💻 ${rawLabel} (Laptop / PC Mic)`;
+        }
+        
+        if (dev.deviceId === selectedAudioDeviceId) opt.selected = true;
+        modalSelectEl.appendChild(opt);
+      });
+    } catch(e) {
+      console.log("Device enumeration note:", e);
+    }
+  }
+
+  async function setAudioInputDevice(deviceId) {
+    selectedAudioDeviceId = deviceId || 'default';
+    localStorage.setItem('copypro_selected_mic_id', selectedAudioDeviceId);
+    
+    try {
+      if (activeMicStream) {
+        activeMicStream.getTracks().forEach(t => t.stop());
+        activeMicStream = null;
+      }
+      
+      const constraints = {
+        audio: selectedAudioDeviceId === 'default' ? true : { deviceId: { exact: selectedAudioDeviceId } }
+      };
+      
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        activeMicStream = await navigator.mediaDevices.getUserMedia(constraints);
+      }
+    } catch(e) {
+      console.log("Mic switch exception:", e);
+    }
+
+    const modalSelectEl = document.getElementById('earbud-mic-device-select');
+    if (modalSelectEl) modalSelectEl.value = selectedAudioDeviceId;
+
+    let targetLabel = "Default Microphone";
+    const found = availableAudioInputs.find(d => d.deviceId === selectedAudioDeviceId);
+    if (found) targetLabel = found.label || "Microphone";
+
+    showToast(`🎙️ Active Mic: ${targetLabel}`, "🎧");
+
+    // Seamlessly restart speech recognition on the new microphone
+    if (micEnabled) {
+      if (recognition) { try { recognition.stop(); } catch(e){} }
+      setTimeout(() => { if (micEnabled) startGoogleSpeechListener(); }, 200);
+    }
+  }
+
+  function openEarbudsModal() {
+    initEarbudsEngine();
+    updateAudioInputDevices();
+    openModal('earbuds-modal');
+  }
+
+  function toggleEarbudsMode() {
+    if (isEarbudsActive) {
+      isEarbudsActive = false;
+      if (earbudAudioEl) try { earbudAudioEl.pause(); } catch(e){}
+      updateEarbudsUI(false);
+      showToast("🎧 Earbuds Mode Paused", "ℹ️");
+    } else {
+      initEarbudsEngine();
+      showToast("🎧 Realme Buds T110 Connected!", "🎧");
+    }
+  }
+
+  function setupMediaSession() {
+    if (!('mediaSession' in navigator)) return;
+
+    const currentQ = (currentQuizData && currentQuizData[currentIdx]) ? currentQuizData[currentIdx] : null;
+    const titleText = currentQ ? `Q ${currentIdx + 1}/${currentQuizData.length}: ${formatDualText(currentQ.question).replace(/\n/g, ' ').substring(0, 45)}...` : "Copy Pro Quiz Session";
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: titleText,
+        artist: "Copy Pro AI Examiner (Realme Buds T110)",
+        album: "Hands-Free CBT Test",
+        artwork: [
+          { src: "https://cdn-icons-png.flaticon.com/512/3406/3406828.png", sizes: "96x96", type: "image/png" },
+          { src: "https://cdn-icons-png.flaticon.com/512/3406/3406828.png", sizes: "512x512", type: "image/png" }
+        ]
+      });
+
+      navigator.mediaSession.playbackState = "playing";
+
+      // Keep positionState at 50% so Android OS AVRCP enables BOTH previoustrack and nexttrack on Left & Right Buds!
+      if ('setPositionState' in navigator.mediaSession) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: 100,
+            playbackRate: 1,
+            position: 50
+          });
+        } catch(e) {}
+      }
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        handleEarbudDoubleTap();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        handleEarbudDoubleTap();
+      });
+
+      // Right Earbud Hold / Triple-Tap ➔ Next Question
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        handleRightBudAction();
+      });
+
+      // Left Earbud Hold / Triple-Tap ➔ Previous Question
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        handleLeftBudAction();
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', () => {
+        handleRightBudAction();
+      });
+
+      navigator.mediaSession.setActionHandler('seekbackward', () => {
+        handleLeftBudAction();
+      });
+
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details && details.seekTime !== undefined) {
+          if (details.seekTime < 50) handleLeftBudAction();
+          else handleRightBudAction();
+        } else {
+          handleRightBudAction();
+        }
+      });
+    } catch(err) {
+      console.log("MediaSession handler notice:", err);
+    }
+  }
+
+  function handleEarbudDoubleTap() {
+    if (isActionDebouncing) return;
+    isActionDebouncing = true;
+    setTimeout(() => { isActionDebouncing = false; }, 260);
+
+    triggerEarbudDiagnosticEvent("Double-Tap (Play/Pause)", "Mic ON / Voice Answer 🎙️");
+    
+    if (!micEnabled) {
+      playSound('mic_on');
+      showToast("🎧 Realme Buds: Mic ON 🎙️", "🎧");
+      toggleGoogleMic();
+    } else {
+      playSound('mic_off');
+      showToast("🎧 Realme Buds: Mic OFF", "🎧");
+      toggleGoogleMic();
+    }
+
+    if ('vibrate' in navigator) navigator.vibrate(25);
+
+    // Keep audio carrier alive with ultra-low latency
+    setTimeout(() => {
+      if (earbudAudioEl && earbudAudioEl.paused) {
+        earbudAudioEl.play().catch(e => {});
+      }
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+    }, 15);
+  }
+
+  // Right Bud Long Press / Hold / Next Track ➔ Next Question ➡️
+  function handleRightBudAction() {
+    if (isActionDebouncing) return;
+    isActionDebouncing = true;
+    setTimeout(() => { isActionDebouncing = false; }, 200);
+
+    if ('vibrate' in navigator) navigator.vibrate(35);
+    triggerEarbudDiagnosticEvent("Right Bud Hold / Next Track", "Next Question ➡️");
+    playSound('next');
+    showToast("👉 Realme Right Bud: Next Question ➡️", "🎧");
+    nextQuestion();
+
+    setTimeout(() => {
+      if (earbudAudioEl && earbudAudioEl.paused) {
+        earbudAudioEl.play().catch(e => {});
+      }
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+    }, 15);
+  }
+
+  // Left Bud Long Press / Hold / Prev Track ➔ Previous Question ⬅️
+  function handleLeftBudAction() {
+    if (isActionDebouncing) return;
+    isActionDebouncing = true;
+    setTimeout(() => { isActionDebouncing = false; }, 200);
+
+    if ('vibrate' in navigator) navigator.vibrate(35);
+    triggerEarbudDiagnosticEvent("Left Bud Hold / Prev Track", "Previous Question ⬅️");
+    playSound('prev');
+    showToast("👈 Realme Left Bud: Previous Question ⬅️", "🎧");
+    prevQuestion();
+
+    setTimeout(() => {
+      if (earbudAudioEl && earbudAudioEl.paused) {
+        earbudAudioEl.play().catch(e => {});
+      }
+      if ('mediaSession' in navigator) navigator.mediaSession.playbackState = "playing";
+    }, 15);
+  }
+
+  function triggerEarbudDiagnosticEvent(actionName, resultDesc) {
+    const box = document.getElementById('earbud-diagnostic-box');
+    const title = document.getElementById('earbud-diag-title');
+    const desc = document.getElementById('earbud-diag-desc');
+    if (!box || !title || !desc) return;
+
+    box.style.background = "rgba(16, 185, 129, 0.22)";
+    box.style.borderColor = "#10B981";
+    title.style.color = "#10B981";
+    title.innerText = `✅ Detected: ${actionName}`;
+    desc.innerText = `Action: ${resultDesc}`;
+
+    setTimeout(() => {
+      box.style.background = "#0F1322";
+      box.style.borderColor = "var(--border-color)";
+      title.style.color = "var(--accent-cyan)";
+      title.innerText = "👆 Touch Your Realme Earbuds Now...";
+      desc.innerText = "Double-Tap: Mic | Right Hold: Next ➡️ | Left Hold: Prev ⬅️";
+    }, 1800);
+  }
+
+  function testEarbudSimulation(type) {
+    initEarbudsEngine();
+    if (type === 'double') handleEarbudDoubleTap();
+    else if (type === 'left') handleLeftBudAction();
+    else handleRightBudAction();
+  }
+
+  // Latest Next-Gen High-Fidelity Phonetic Normalizer for Bengali & English
+  function cleanTextForTTS(text, isBengali = false) {
+    if (!text) return "";
+    let t = text
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/[\|\/\\~^•–—]/g, ' ')
+      .replace(/[\*\_`#@{}\[\]\(\)"']/g, ' ')
+      .replace(/[\.\-]{2,}/g, '. ');
+
+    if (isBengali) {
+      // Latest Authentic Bengali Phonetics, Math & Unit Expansions
+      t = t.replace(/%/g, ' শতাংশ ')
+           .replace(/&/g, ' এবং ')
+           .replace(/\+/g, ' যোগ ')
+           .replace(/−|-/g, ' বিয়োগ ')
+           .replace(/[×\*]/g, ' গুণ ')
+           .replace(/[÷\/]/g, ' ভাগ ')
+           .replace(/=/g, ' সমান ')
+           .replace(/≠/g, ' অসমান ')
+           .replace(/≈/g, ' প্রায় সমান ')
+           .replace(/°C/gi, ' ডিগ্রি সেলসিয়াস ')
+           .replace(/°F/gi, ' ডিগ্রি ফারেনহাইট ')
+           .replace(/km\/h/gi, ' কিলোমিটার প্রতি ঘণ্টা ')
+           .replace(/m\/s\^2|m\/s2/gi, ' মিটার প্রতি সেকেন্ড স্কয়ার ')
+           .replace(/m\/s/gi, ' মিটার প্রতি সেকেন্ড ')
+           .replace(/₹|Rs\.|INR/gi, ' টাকা ')
+           .replace(/\$/g, ' ডলার ')
+           .replace(/kg/gi, ' কিলোগ্রাম ')
+           .replace(/gm|g(?=\s|$)/gi, ' গ্রাম ')
+           .replace(/cm/gi, ' সেন্টিমিটার ')
+           .replace(/mm/gi, ' মিলিমিটার ')
+           .replace(/km/gi, ' কিলোমিটার ')
+           .replace(/sq\.?\s*km/gi, ' বর্গ কিলোমিটার ')
+           .replace(/sq\.?\s*m/gi, ' বর্গ মিটার ');
+    } else {
+      // Latest Natural English Phonetics, Math & Unit Expansions
+      t = t.replace(/%/g, ' percent ')
+           .replace(/&/g, ' and ')
+           .replace(/\+/g, ' plus ')
+           .replace(/−/g, ' minus ')
+           .replace(/[×\*]/g, ' times ')
+           .replace(/÷/g, ' divided by ')
+           .replace(/=/g, ' equals ')
+           .replace(/≠/g, ' is not equal to ')
+           .replace(/≈/g, ' approximately ')
+           .replace(/°C/gi, ' degree Celsius ')
+           .replace(/°F/gi, ' degree Fahrenheit ')
+           .replace(/km\/h/gi, ' kilometers per hour ')
+           .replace(/m\/s\^2|m\/s2/gi, ' meters per second squared ')
+           .replace(/m\/s/gi, ' meters per second ')
+           .replace(/₹|Rs\.|INR/gi, ' Rupees ')
+           .replace(/\$/g, ' Dollars ')
+           .replace(/kg/gi, ' kilograms ')
+           .replace(/gm|g(?=\s|$)/gi, ' grams ')
+           .replace(/cm/gi, ' centimeters ')
+           .replace(/mm/gi, ' millimeters ')
+           .replace(/km/gi, ' kilometers ')
+           .replace(/sq\.?\s*km/gi, ' square kilometers ')
+           .replace(/sq\.?\s*m/gi, ' square meters ');
+    }
+
+    return t.replace(/\s+/g, ' ').trim();
+  }
+
+  // Exact Copy Pro PC Studio Neural Voice Engine with Automatic Dual-Voice Switching
+  function splitEnglishBengali(text) {
+    if (!text) return { eng: "", bn: "" };
+    
+    // Check if text has slash delimiter " / "
+    if (text.includes(" / ")) {
+      const parts = text.split(" / ");
+      const engParts = [], bnParts = [];
+      parts.forEach(p => {
+        if (/[\u0980-\u09FF]/.test(p)) bnParts.push(p.trim());
+        else engParts.push(p.trim());
+      });
+      return { 
+        eng: engParts.join(" ").trim(), 
+        bn: bnParts.join(" ").trim() 
+      };
+    }
+
+    // Check if text has pipe delimiter "|"
+    if (text.includes("|")) {
+      const parts = text.split("|");
+      const engParts = [], bnParts = [];
+      parts.forEach(p => {
+        if (/[\u0980-\u09FF]/.test(p)) bnParts.push(p.trim());
+        else engParts.push(p.trim());
+      });
+      return { 
+        eng: engParts.join(" ").trim(), 
+        bn: bnParts.join(" ").trim() 
+      };
+    }
+
+    // Multiline splitting
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    const engLines = [], bnLines = [];
+    lines.forEach(line => {
+      if (/[\u0980-\u09FF]/.test(line)) bnLines.push(line);
+      else engLines.push(line);
+    });
+
+    return {
+      eng: engLines.join(" ").trim() || (!/[\u0980-\u09FF]/.test(text) ? text : ""),
+      bn: bnLines.join(" ").trim() || (/[\u0980-\u09FF]/.test(text) ? text : "")
+    };
+  }
+
+  let cachedVoices = [];
+  let ttsHeartbeat = null;
+
+  function loadBrowserVoices() {
+    if (!('speechSynthesis' in window)) return [];
+    cachedVoices = window.speechSynthesis.getVoices() || [];
+    return cachedVoices;
+  }
+
+  if ('speechSynthesis' in window) {
+    loadBrowserVoices();
+    window.speechSynthesis.onvoiceschanged = () => { loadBrowserVoices(); };
+  }
+
+  function getBestVoice(isBengali) {
+    let voices = cachedVoices;
+    if (!voices || !voices.length) voices = loadBrowserVoices();
+    if (!voices || !voices.length) return null;
+
+    if (isBengali) {
+      // 1. Exact Copy Pro PC Studio Bengali Voice: Microsoft Tanishaa Neural
+      const tanishaa = voices.find(v => (v.name || '').includes('Tanishaa'));
+      if (tanishaa) return tanishaa;
+
+      // 2. Microsoft Studio Bengali Voices: Bashkar / Nabanita / Pradeep
+      const otherMsBn = voices.find(v => {
+        const n = v.name || '';
+        return n.includes('Bashkar') || n.includes('Nabanita') || n.includes('Pradeep');
+      });
+      if (otherMsBn) return otherMsBn;
+
+      // 3. Google Studio Bengali Voice (Google বাংলা)
+      const googleBn = voices.find(v => {
+        const n = (v.name || '').toLowerCase();
+        const l = (v.lang || '').toLowerCase();
+        return (l.startsWith('bn') || n.includes('bangla') || n.includes('bengali')) && n.includes('google');
+      });
+      if (googleBn) return googleBn;
+
+      // 4. Any Pure Bengali Voice
+      const anyBn = voices.find(v => {
+        const n = (v.name || '').toLowerCase();
+        const l = (v.lang || '').toLowerCase();
+        return l.startsWith('bn') || n.includes('bengali') || n.includes('bangla');
+      });
+      if (anyBn) return anyBn;
+
+      return null;
+    } else {
+      // 1. Exact Copy Pro PC Studio English Voice: Microsoft Neerja Neural
+      const neerja = voices.find(v => (v.name || '').includes('Neerja'));
+      if (neerja) return neerja;
+
+      // 2. Microsoft Studio English Voices: Aria / Jenny / Sonia / Guy
+      const otherMsEn = voices.find(v => {
+        const n = v.name || '';
+        return n.includes('Aria') || n.includes('Jenny') || n.includes('Sonia') || n.includes('Guy');
+      });
+      if (otherMsEn) return otherMsEn;
+
+      // 3. Google Studio English Voice
+      const googleEn = voices.find(v => {
+        const n = (v.name || '').toLowerCase();
+        const l = (v.lang || '').toLowerCase();
+        return n.includes('google') && (l.startsWith('en-in') || l.startsWith('en-us') || l.startsWith('en-gb') || l.startsWith('en'));
+      });
+      if (googleEn) return googleEn;
+
+      // 4. Any English Voice
+      const anyEn = voices.find(v => (v.lang || '').toLowerCase().startsWith('en'));
+      if (anyEn) return anyEn;
+
+      return null;
+    }
+  }
+
+  let activeAudioVoice = null;
+
+  function stopStudioVoice() {
+    if (ttsHeartbeat) { clearInterval(ttsHeartbeat); ttsHeartbeat = null; }
+    if ('speechSynthesis' in window) {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+    if (activeAudioVoice) {
+      try {
+        activeAudioVoice.pause();
+        activeAudioVoice.currentTime = 0;
+      } catch(e) {}
+      activeAudioVoice = null;
+    }
+  }
+
+  function playBengaliGoogleAudio(text, onEnd = null) {
+    if (!text || !text.trim()) { if (onEnd) onEnd(); return; }
+    
+    // Chunk long text into natural phrases under 130 chars
+    const chunks = [];
+    const parts = text.replace(/\s+/g, ' ').trim().split(/([।\.\?!,;:\n]+)/);
+    let cur = '';
+    for (let i = 0; i < parts.length; i++) {
+      const seg = parts[i].trim();
+      if (!seg) continue;
+      if ((cur + ' ' + seg).length <= 125) {
+        cur = cur ? (cur + ' ' + seg) : seg;
+      } else {
+        if (cur) chunks.push(cur);
+        cur = seg;
+      }
+    }
+    if (cur) chunks.push(cur);
+
+    if (!chunks.length) { if (onEnd) onEnd(); return; }
+
+    let chunkIdx = 0;
+    function playNextChunk() {
+      if (chunkIdx >= chunks.length) {
+        activeAudioVoice = null;
+        if (onEnd) onEnd();
+        return;
+      }
+      const c = chunks[chunkIdx++];
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=bn&q=${encodeURIComponent(c)}`;
+      activeAudioVoice = new Audio(url);
+      activeAudioVoice.playbackRate = Math.min(voiceSpeed, 1.2);
+      activeAudioVoice.onended = () => { playNextChunk(); };
+      activeAudioVoice.onerror = () => { playNextChunk(); };
+      
+      const p = activeAudioVoice.play();
+      if (p !== undefined) {
+        p.catch(() => { playNextChunk(); });
+      }
+    }
+
+    playNextChunk();
+  }
+
+  function toggleAudioRead() {
+    setAudioRead(!audioReadEnabled);
+  }
+
+  function setAudioRead(enable) {
+    audioReadEnabled = enable;
+    const btn = document.getElementById('btn-tts');
+    if (btn) {
+      btn.style.color = audioReadEnabled ? "#FFFFFF" : "var(--text-main)";
+      btn.style.backgroundColor = audioReadEnabled ? "#059669" : "rgba(255,255,255,0.06)";
+      btn.style.borderColor = audioReadEnabled ? "#10B981" : "var(--border-color)";
+      btn.innerText = audioReadEnabled ? `🔊 AI: ON [T]` : `🗣️ AI [T]`;
+    }
+    if (audioReadEnabled) speakCurrentQuestion();
+    else stopStudioVoice();
+  }
+
+  function setVoiceSpeed(speed) {
+    voiceSpeed = speed;
+    const btn = document.getElementById('btn-speed');
+    if (btn) btn.innerText = `⚡ ${voiceSpeed}x`;
+    if (audioReadEnabled) speakCurrentQuestion();
+  }
+
+  function cycleVoiceSpeed() {
+    if (voiceSpeed === 0.8) setVoiceSpeed(1.0);
+    else if (voiceSpeed === 1.0) setVoiceSpeed(1.25);
+    else if (voiceSpeed === 1.25) setVoiceSpeed(1.5);
+    else setVoiceSpeed(0.8);
+  }
+
+  function setLanguage(mode) {
+    if (['both', 'en', 'bn'].includes(mode)) {
+      langMode = mode;
+      const btn = document.getElementById('btn-lang');
+      if (btn) {
+        btn.innerText = langMode === 'both' ? "🌐 Both" : (langMode === 'en' ? "🇬🇧 Eng" : "🇧🇩 Ban");
+      }
+      if (currentQuizData.length) loadQuestion(currentIdx);
+    }
+  }
+
+  function cycleLang() {
+    if (langMode === 'both') setLanguage('en');
+    else if (langMode === 'en') setLanguage('bn');
+    else setLanguage('both');
+  }
+
+  function speakCurrentQuestion(overrideLang = null) {
+    if (!currentQuizData[currentIdx]) return;
+    stopStudioVoice();
+
+    const q = currentQuizData[currentIdx];
+    const splitQ = splitEnglishBengali(q.question);
+    const letters = ["A", "B", "C", "D"];
+    const optEng = [], optBn = [];
+
+    letters.forEach((l, i) => {
+      const raw = q['option' + l] || '';
+      const splitO = splitEnglishBengali(raw);
+      if (splitO.eng) optEng.push(`Option ${i+1}: ${cleanTextForTTS(splitO.eng, false)}`);
+      else if (raw && !/[\u0980-\u09FF]/.test(raw)) optEng.push(`Option ${i+1}: ${cleanTextForTTS(raw, false)}`);
+
+      if (splitO.bn) optBn.push(`অপশন ${i+1}: ${cleanTextForTTS(splitO.bn, true)}`);
+      else if (raw && /[\u0980-\u09FF]/.test(raw)) optBn.push(`অপশন ${i+1}: ${cleanTextForTTS(raw, true)}`);
+    });
+
+    const cleanEngQ = cleanTextForTTS(splitQ.eng || (!/[\u0980-\u09FF]/.test(q.question) ? q.question : ""), false);
+    const cleanBnQ = cleanTextForTTS(splitQ.bn || (/[\u0980-\u09FF]/.test(q.question) ? q.question : ""), true);
+
+    const enVoice = getBestVoice(false);
+    const bnVoice = getBestVoice(true);
+
+    const activeLang = overrideLang || langMode;
+
+    const textEn = (cleanEngQ || optEng.length) ? (`Question ${currentIdx + 1}. ${cleanEngQ}. ` + (optEng.length ? optEng.join(". ") + "." : "")) : "";
+    const prefixBn = activeLang === 'both' ? `বাংলায় প্রশ্ন ${currentIdx + 1}` : `প্রশ্ন নম্বর ${currentIdx + 1}`;
+    const textBn = (cleanBnQ || optBn.length) ? (`${prefixBn}। ${cleanBnQ}। ` + (optBn.length ? optBn.join("। ") + "।" : "")) : "";
+
+    setTimeout(() => {
+      // 1. ENGLISH ONLY
+      if (activeLang === 'en') {
+        if (textEn && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterEn = new SpeechSynthesisUtterance(textEn);
+          utterEn.lang = 'en-IN';
+          if (enVoice) utterEn.voice = enVoice;
+          utterEn.rate = voiceSpeed * 1.0;
+          window.speechSynthesis.speak(utterEn);
+        }
+        return;
+      }
+
+      // 2. BENGALI ONLY
+      if (activeLang === 'bn') {
+        if (!textBn) return;
+        if (bnVoice && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterBn = new SpeechSynthesisUtterance(textBn);
+          utterBn.lang = 'bn-IN';
+          utterBn.voice = bnVoice;
+          utterBn.rate = voiceSpeed * 0.96;
+          window.speechSynthesis.speak(utterBn);
+        } else {
+          playBengaliGoogleAudio(textBn);
+        }
+        return;
+      }
+
+      // 3. BOTH MODE
+      if (activeLang === 'both') {
+        if (textEn && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterEn = new SpeechSynthesisUtterance(textEn);
+          utterEn.lang = 'en-IN';
+          if (enVoice) utterEn.voice = enVoice;
+          utterEn.rate = voiceSpeed * 1.0;
+
+          utterEn.onend = () => {
+            if (!textBn) return;
+            if (bnVoice && 'speechSynthesis' in window) {
+              window.speechSynthesis.resume();
+              const utterBn = new SpeechSynthesisUtterance(textBn);
+              utterBn.lang = 'bn-IN';
+              utterBn.voice = bnVoice;
+              utterBn.rate = voiceSpeed * 0.96;
+              window.speechSynthesis.speak(utterBn);
+            } else {
+              playBengaliGoogleAudio(textBn);
+            }
+          };
+
+          utterEn.onerror = () => {
+            if (textBn) {
+              if (bnVoice && 'speechSynthesis' in window) {
+                const utterBn = new SpeechSynthesisUtterance(textBn);
+                utterBn.lang = 'bn-IN';
+                utterBn.voice = bnVoice;
+                window.speechSynthesis.speak(utterBn);
+              } else {
+                playBengaliGoogleAudio(textBn);
+              }
+            }
+          };
+
+          window.speechSynthesis.speak(utterEn);
+        } else if (textBn) {
+          if (bnVoice && 'speechSynthesis' in window) {
+            const utterBn = new SpeechSynthesisUtterance(textBn);
+            utterBn.lang = 'bn-IN';
+            utterBn.voice = bnVoice;
+            window.speechSynthesis.speak(utterBn);
+          } else {
+            playBengaliGoogleAudio(textBn);
+          }
+        }
+      }
+    }, 10);
+  }
+
+  function narrateExplanation(overrideLang = null) {
+    if (!currentQuizData[currentIdx]) return;
+    stopStudioVoice();
+
+    const q = currentQuizData[currentIdx];
+    const sol = q.solution || "No explanation provided for this question.";
+    
+    // Auto-open explanation box in UI
+    const solBox = document.getElementById('sol-box');
+    const lblSol = document.getElementById('lbl-sol-text');
+    if (solBox && lblSol) {
+      lblSol.innerText = sol;
+      solBox.style.display = 'block';
+    }
+
+    const splitS = splitEnglishBengali(sol);
+    
+    const cleanEng = cleanTextForTTS(splitS.eng || (!/[\u0980-\u09FF]/.test(sol) ? sol : ""), false);
+    const cleanBn = cleanTextForTTS(splitS.bn || (/[\u0980-\u09FF]/.test(sol) ? sol : ""), true);
+
+    const enVoice = getBestVoice(false);
+    const bnVoice = getBestVoice(true);
+
+    const activeLang = overrideLang || langMode;
+
+    const textEn = cleanEng ? `Important Details and Solution. ${cleanEng}` : "";
+    const textBn = cleanBn ? `গুরুত্বপূর্ণ তথ্য ও সমাধান। ${cleanBn}` : "";
+
+    setTimeout(() => {
+      if (activeLang === 'en') {
+        if (textEn && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterEn = new SpeechSynthesisUtterance(textEn);
+          utterEn.lang = 'en-IN';
+          if (enVoice) utterEn.voice = enVoice;
+          utterEn.rate = voiceSpeed * 1.0;
+          window.speechSynthesis.speak(utterEn);
+        }
+        return;
+      }
+
+      if (activeLang === 'bn') {
+        if (!textBn) return;
+        if (bnVoice && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterBn = new SpeechSynthesisUtterance(textBn);
+          utterBn.lang = 'bn-IN';
+          utterBn.voice = bnVoice;
+          utterBn.rate = voiceSpeed * 0.96;
+          window.speechSynthesis.speak(utterBn);
+        } else {
+          playBengaliGoogleAudio(textBn);
+        }
+        return;
+      }
+
+      if (activeLang === 'both') {
+        if (textEn && 'speechSynthesis' in window) {
+          window.speechSynthesis.resume();
+          const utterEn = new SpeechSynthesisUtterance(textEn);
+          utterEn.lang = 'en-IN';
+          if (enVoice) utterEn.voice = enVoice;
+          utterEn.rate = voiceSpeed * 1.0;
+
+          utterEn.onend = () => {
+            if (!textBn) return;
+            if (bnVoice && 'speechSynthesis' in window) {
+              window.speechSynthesis.resume();
+              const utterBn = new SpeechSynthesisUtterance(textBn);
+              utterBn.lang = 'bn-IN';
+              utterBn.voice = bnVoice;
+              utterBn.rate = voiceSpeed * 0.96;
+              window.speechSynthesis.speak(utterBn);
+            } else {
+              playBengaliGoogleAudio(textBn);
+            }
+          };
+
+          window.speechSynthesis.speak(utterEn);
+        } else if (textBn) {
+          if (bnVoice && 'speechSynthesis' in window) {
+            const utterBn = new SpeechSynthesisUtterance(textBn);
+            utterBn.lang = 'bn-IN';
+            utterBn.voice = bnVoice;
+            window.speechSynthesis.speak(utterBn);
+          } else {
+            playBengaliGoogleAudio(textBn);
+          }
+        }
+      }
+    }, 10);
+  }
+
+  // Google Voice Assistant with Full Hands-Free Control
+  let speechRecInstance = null;
+
+  function stopSpeechListener() {
+    if (speechRecInstance) {
+      speechRecInstance.onend = null;
+      speechRecInstance.onerror = null;
+      speechRecInstance.onresult = null;
+      try { speechRecInstance.abort(); } catch(e) {}
+      speechRecInstance = null;
+    }
+  }
+
+  function toggleGoogleMic() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      alert("Speech Recognition is not supported by your browser. Please use Chrome or Edge!");
+      return;
+    }
+
+    micEnabled = !micEnabled;
+    const btn = document.getElementById('btn-mic');
+    const hud = document.getElementById('voice-hud');
+
+    if (micEnabled) {
+      btn.classList.add('active');
+      btn.innerText = "🎙️ Mic: ON";
+      hud.style.display = "flex";
+      startGoogleSpeechListener();
+    } else {
+      btn.classList.remove('active');
+      btn.innerText = "🎙️ Mic [S]";
+      hud.style.display = "none";
+      stopSpeechListener();
+    }
+  }
+
+  function startGoogleSpeechListener() {
+    if (!micEnabled) return;
+    stopSpeechListener();
+
+    try {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return;
+
+      speechRecInstance = new SpeechRec();
+      speechRecInstance.continuous = false; // Discrete one-shot per command = 100% RELIABLE!
+      speechRecInstance.interimResults = true;
+      speechRecInstance.maxAlternatives = 1;
+      speechRecInstance.lang = langMode === 'bn' ? 'bn-IN' : 'en-IN';
+
+      let commandHandledForThisTurn = false;
+
+      speechRecInstance.onresult = (event) => {
+        if (!micEnabled || commandHandledForThisTurn) return;
+
+        let transcript = '';
+        for (let i = 0; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        transcript = transcript.trim();
+        if (!transcript) return;
+
+        const hudText = document.getElementById('voice-hud-text');
+        if (hudText) hudText.innerText = `🎤 "${transcript}"`;
+
+        // Check command
+        const executed = handleSpokenCommand(transcript);
+        if (executed) {
+          commandHandledForThisTurn = true;
+          // Immediately cycle to a fresh recognition turn so next command is heard instantly!
+          setTimeout(() => {
+            if (micEnabled) startGoogleSpeechListener();
+          }, 80);
+        }
+      };
+
+      speechRecInstance.onerror = (event) => {
+        if (micEnabled && event.error !== 'aborted') {
+          setTimeout(() => {
+            if (micEnabled) startGoogleSpeechListener();
+          }, 100);
+        }
+      };
+
+      speechRecInstance.onend = () => {
+        if (micEnabled) {
+          setTimeout(() => {
+            if (micEnabled) startGoogleSpeechListener();
+          }, 60);
+        }
+      };
+
+      speechRecInstance.start();
+    } catch(e) {
+      console.log("Speech start notice:", e);
+      if (micEnabled) {
+        setTimeout(() => {
+          if (micEnabled) startGoogleSpeechListener();
+        }, 200);
+      }
+    }
+  }
+
+  function handleSpokenCommand(text) {
+    if (!text) return false;
+    const t = text.toLowerCase().trim();
+    if (!t) return false;
+
+    const hudText = document.getElementById('voice-hud-text');
+
+    function executeVoiceAction(displayMsg, soundType, actionFn) {
+      if ('vibrate' in navigator) navigator.vibrate(20);
+      if (hudText) hudText.innerText = displayMsg;
+      if (soundType) playSound(soundType);
+      actionFn();
+    }
+
+    // 1. AI Voice ON / OFF Commands
+    if (t.includes('ai on') || t.includes('voice on') || t.includes('ai chalu') || t.includes('awaj on') || t.includes('audio on') || t === 'on') {
+      executeVoiceAction(`🎯 Recognized: "AI Voice ON" 🔊`, 'correct', () => setAudioRead(true));
+      return true;
+    }
+    if (t.includes('ai off') || t.includes('voice off') || t.includes('stop voice') || t.includes('stop speech') || t.includes('chup') || t.includes('band karo') || t.includes('ruk jao') || t.includes('audio off') || t === 'off' || t === 'stop') {
+      executeVoiceAction(`🎯 Recognized: "AI Voice OFF" 🔇`, 'wrong', () => setAudioRead(false));
+      return true;
+    }
+
+    // 2. Read Bengali Details
+    if (t.includes('bangla detail') || t.includes('bangla solution') || t.includes('bengali detail') || t.includes('bengali solution') || t.includes('bangla explain') || t.includes('banglay solution') || t.includes('banglay details') || t.includes('shomadhan shonao')) {
+      executeVoiceAction(`🎯 Reading Solution in Bengali 🇧🇩`, 'correct', () => narrateExplanation('bn'));
+      return true;
+    }
+
+    // 3. Read English Details
+    if (t.includes('english detail') || t.includes('english solution') || t.includes('english explain') || t.includes('english mein details') || t.includes('english mein solution')) {
+      executeVoiceAction(`🎯 Reading Solution in English 🇬🇧`, 'correct', () => narrateExplanation('en'));
+      return true;
+    }
+
+    // 4. Read Bengali Question
+    if (t.includes('bangla question') || t.includes('bengali question') || t.includes('bangla proshno') || t.includes('banglay question') || t.includes('banglay bolo')) {
+      executeVoiceAction(`🎯 Reading Question in Bengali 🇧🇩`, 'correct', () => speakCurrentQuestion('bn'));
+      return true;
+    }
+
+    // 5. Read English Question
+    if (t.includes('english question') || t.includes('english mein question') || t.includes('english bolo')) {
+      executeVoiceAction(`🎯 Reading Question in English 🇬🇧`, 'correct', () => speakCurrentQuestion('en'));
+      return true;
+    }
+
+    // 6. General Read Details / Solution
+    if (t.includes('details') || t.includes('detail') || t.includes('solution') || t.includes('explain') || t.includes('vyakhya') || t.includes('shomadhan') || t.includes('uttar') || t.includes('bujhiye') || t.includes('dekhao') || t.includes('read sol') || t.includes('read det') || t.includes('details bolo') || t.includes('read detailes')) {
+      executeVoiceAction(`🎯 Recognized: "Reading Solution & Details" 💡`, 'correct', () => narrateExplanation());
+      return true;
+    }
+
+    // 7. General Read Question
+    if (t.includes('read question') || t.includes('question bolo') || t.includes('question padho') || t.includes('repeat question') || t.includes('prashna bolo') || t.includes('proshno poro') || t.includes('speak question') || t.includes('read again') || t === 'repeat' || t === 'again') {
+      executeVoiceAction(`🎯 Recognized: "Reading Question" 🗣️`, null, () => speakCurrentQuestion());
+      return true;
+    }
+
+    // 8. Navigation Commands (Next / Previous)
+    if (t.includes('next') || t.includes('agla') || t.includes('aage') || t.includes('porer') || t.includes('porertaa') || t.includes('skip') || t.includes('chalo') || t.includes('forward')) {
+      executeVoiceAction(`🎯 Recognized: "Next" ➔ Next Question ➡️`, 'next', () => nextQuestion());
+      return true;
+    }
+    if (t.includes('previous') || t.includes('prev') || t.includes('pichla') || t.includes('peeche') || t.includes('aager') || t.includes('aagertaa') || t.includes('back')) {
+      executeVoiceAction(`🎯 Recognized: "Previous" ➔ Previous Question ⬅️`, 'prev', () => prevQuestion());
+      return true;
+    }
+
+    // 9. Clear & Review
+    if (t.includes('clear') || t.includes('reset') || t.includes('mitao') || t.includes('hatao') || t.includes('muche') || t.includes('delete answer')) {
+      executeVoiceAction(`🎯 Recognized: "Clear Answer" 🧹`, 'wrong', () => clearResponse());
+      return true;
+    }
+    if (t.includes('review') || t.includes('mark') || t.includes('star') || t.includes('mark review') || t.includes('baad mein')) {
+      executeVoiceAction(`🎯 Recognized: "Mark for Review" ⭐`, 'correct', () => toggleMarkReview());
+      return true;
+    }
+
+    // 10. Language Commands
+    if (t.includes('english') || t.includes('eng') || t.includes('angrezi')) {
+      executeVoiceAction(`🎯 Language Changed: "English" 🇬🇧`, 'correct', () => setLanguage('en'));
+      return true;
+    }
+    if (t.includes('bengali') || t.includes('bangla')) {
+      executeVoiceAction(`🎯 Language Changed: "Bengali" 🇧🇩`, 'correct', () => setLanguage('bn'));
+      return true;
+    }
+    if (t.includes('both') || t.includes('both language') || t.includes('dono') || t.includes('ubhay')) {
+      executeVoiceAction(`🎯 Language Changed: "Both (Eng + Ban)" 🌐`, 'correct', () => setLanguage('both'));
+      return true;
+    }
+    if (t.includes('change language') || t.includes('language') || t.includes('bhasha')) {
+      executeVoiceAction(`🎯 Language Changed 🌐`, 'correct', () => { cycleLang(); if (hudText) hudText.innerText = `🎯 Language Changed to ${langMode.toUpperCase()} 🌐`; });
+      return true;
+    }
+
+    // 11. Voice Speed Commands
+    if (t.includes('fast') || t.includes('tez') || t.includes('1.5') || t.includes('speed up')) {
+      executeVoiceAction(`🎯 Speed Set: 1.5x ⚡`, 'correct', () => setVoiceSpeed(1.5));
+      return true;
+    }
+    if (t.includes('normal speed') || t.includes('1x') || t.includes('regular')) {
+      executeVoiceAction(`🎯 Speed Set: 1.0x ⚡`, 'correct', () => setVoiceSpeed(1.0));
+      return true;
+    }
+    if (t.includes('slow') || t.includes('dheere') || t.includes('0.8')) {
+      executeVoiceAction(`🎯 Speed Set: 0.8x ⚡`, 'correct', () => setVoiceSpeed(0.8));
+      return true;
+    }
+
+    // 12. Submit Test Command
+    if (t.includes('submit') || t.includes('finish') || t.includes('khatam') || t.includes('shesh') || t.includes('submit test')) {
+      executeVoiceAction(`🎯 Recognized: "Submit Exam" 🚀`, 'correct', () => submitQuizConfirm());
+      return true;
+    }
+
+    // 13. Microphone Device Voice Switcher
+    if (t.includes('laptop mic') || t.includes('pc mic') || t.includes('computer mic') || t.includes('internal mic')) {
+      const laptopDev = availableAudioInputs.find(d => !d.label.toLowerCase().includes('bluetooth') && !d.label.toLowerCase().includes('buds') && !d.label.toLowerCase().includes('hands-free') && !d.label.toLowerCase().includes('headset'));
+      const devId = laptopDev ? laptopDev.deviceId : 'default';
+      executeVoiceAction(`🎯 Mic Switched: "💻 Laptop / PC Mic"`, 'correct', () => setAudioInputDevice(devId));
+      return true;
+    }
+    if (t.includes('buds mic') || t.includes('earbuds mic') || t.includes('bluetooth mic') || t.includes('headset mic') || t.includes('realme mic')) {
+      const budsDev = availableAudioInputs.find(d => d.label.toLowerCase().includes('bluetooth') || d.label.toLowerCase().includes('buds') || d.label.toLowerCase().includes('hands-free') || d.label.toLowerCase().includes('headset') || d.label.toLowerCase().includes('realme'));
+      const devId = budsDev ? budsDev.deviceId : 'default';
+      executeVoiceAction(`🎯 Mic Switched: "🎧 Realme Buds / Earbuds Mic"`, 'correct', () => setAudioInputDevice(devId));
+      return true;
+    }
+    if (t.includes('default mic') || t.includes('auto mic') || t.includes('main mic')) {
+      executeVoiceAction(`🎯 Mic Switched: "⚙️ Auto-Detect Default"`, 'correct', () => setAudioInputDevice('default'));
+      return true;
+    }
+
+    // 14. Option Matching
+    let optIndex = -1;
+    if (t.includes('option a') || t.includes('option 1') || t.includes('option one') || t.includes('answer a') || t.includes('ans a') || t.includes('pahla') || t.includes('ek') || t.includes('prothom') || t === 'a' || t === 'one' || t === '1') {
+      optIndex = 0;
+    } else if (t.includes('option b') || t.includes('option 2') || t.includes('option two') || t.includes('answer b') || t.includes('ans b') || t.includes('dusra') || t.includes('do') || t.includes('dui') || t.includes('ditiyo') || t === 'b' || t === 'two' || t === '2') {
+      optIndex = 1;
+    } else if (t.includes('option c') || t.includes('option 3') || t.includes('option three') || t.includes('answer c') || t.includes('ans c') || t.includes('teesra') || t.includes('teen') || t.includes('tin') || t.includes('tritiyo') || t === 'c' || t === 'three' || t === '3') {
+      optIndex = 2;
+    } else if (t.includes('option d') || t.includes('option 4') || t.includes('option four') || t.includes('answer d') || t.includes('ans d') || t.includes('choutha') || t.includes('char') || t.includes('chothurtho') || t === 'd' || t === 'four' || t === '4') {
+      optIndex = 3;
+    }
+
+    // 15. Content Matching
+    if (optIndex === -1 && currentQuizData[currentIdx]) {
+      const q = currentQuizData[currentIdx];
+      const letters = ['A', 'B', 'C', 'D'];
+      letters.forEach((l, i) => {
+        const val = (q['option' + l] || '').toLowerCase().trim();
+        if (val && val.length > 2 && (t.includes(val) || val.includes(t))) optIndex = i;
+      });
+    }
+
+    if (optIndex !== -1) {
+      const letters = ['A', 'B', 'C', 'D'];
+      executeVoiceAction(`🎯 Option ${letters[optIndex]} Selected: "${text}" ✓`, null, () => selectOption(optIndex));
+      return true;
+    }
+
+    return false;
+  }
+
+  function formatDualText(text) {
+    if (!text) return "";
+    if (langMode === 'both') return text;
+    
+    const lines = text.split('\n');
+    const engLines = [], bnLines = [];
+
+    lines.forEach(l => {
+      if (/[\u0980-\u09FF]/.test(l)) bnLines.push(l);
+      else engLines.push(l);
+    });
+
+    if (langMode === 'en') return engLines.join('\n').trim() || text;
+    if (langMode === 'bn') return bnLines.join('\n').trim() || text;
+    return text;
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str) {
+    if (!str) return '';
+    return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Full Keyboard Shortcuts Engine
+  window.addEventListener('keydown', (e) => {
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+    if (document.getElementById('view-player').classList.contains('active')) {
+      const key = e.key.toUpperCase();
+
+      if (key === '1' || key === 'A') { e.preventDefault(); selectOption(0); }
+      else if (key === '2' || key === 'B') { e.preventDefault(); selectOption(1); }
+      else if (key === '3' || key === 'C') { e.preventDefault(); selectOption(2); }
+      else if (key === '4' || key === 'D' && !e.ctrlKey) { e.preventDefault(); selectOption(3); }
+      else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') { e.preventDefault(); nextQuestion(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prevQuestion(); }
+      else if (key === 'M' || key === 'R') { e.preventDefault(); toggleMarkReview(); }
+      else if (key === 'C' || e.key === 'Backspace') { e.preventDefault(); clearResponse(); }
+      else if (key === 'E') { e.preventDefault(); toggleSolutionView(); }
+      else if (key === 'T') { e.preventDefault(); toggleAudioRead(); }
+      else if (key === 'S' || e.key === 'Shift') { e.preventDefault(); toggleGoogleMic(); }
+      else if (key === 'L') { e.preventDefault(); cycleLang(); }
+      else if (e.key === 'Escape') { switchView('table'); }
+    }
+  });
+
+  // Admin Security Functions
+  let pendingAdminAction = null;
+  let isFirstTimeAdminSetup = false;
+
+  async function sha256(text) {
+    const msgBuffer = new TextEncoder().encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function isAdminLoggedIn() {
+    return sessionStorage.getItem('copypro_admin_auth') === 'true';
+  }
+
+  function updateAdminUIState(isLoggedIn) {
+    const btnAdminToggle = document.getElementById('btn-admin-toggle');
+    if (btnAdminToggle) {
+      if (isLoggedIn) {
+        btnAdminToggle.classList.add('active');
+        btnAdminToggle.innerHTML = "🛡️ Admin: ON [Logout]";
+        btnAdminToggle.title = "Click to Lock & Logout from Admin mode";
+      } else {
+        btnAdminToggle.classList.remove('active');
+        btnAdminToggle.innerHTML = "🛡️ Admin Login 🔒";
+        btnAdminToggle.title = "Click to Login as Database Admin";
+      }
+    }
+    renderCloudDashboard(allCloudTopics);
+  }
+
+  function toggleAdminLogin() {
+    if (isAdminLoggedIn()) {
+      if (confirm("Logout from Admin mode? Cloud test editing will be locked.")) {
+        sessionStorage.removeItem('copypro_admin_auth');
+        updateAdminUIState(false);
+        showToast("Admin Logged Out 🔒", "🛡️");
+      }
+    } else {
+      requireAdminAuth(() => {
+        showToast("Admin Mode Activated! 🛡️", "✅");
+      });
+    }
+  }
+
+  async function requireAdminAuth(actionCallback) {
+    if (isAdminLoggedIn()) {
+      if (typeof actionCallback === 'function') actionCallback();
+      return;
+    }
+
+    pendingAdminAction = actionCallback;
+    const passInput = document.getElementById('admin-pass-input');
+    const errEl = document.getElementById('admin-pass-error');
+    const modalTitle = document.getElementById('admin-modal-title');
+    const modalDesc = document.getElementById('admin-modal-desc');
+    const unlockBtn = document.getElementById('btn-admin-unlock');
+    const changePinBtn = document.getElementById('btn-admin-change-pin');
+
+    if (passInput) passInput.value = '';
+    if (errEl) errEl.innerText = '⏳ Verifying database connection...';
+
+    openModal('admin-auth-modal');
+
+    try {
+      if (!db) throw new Error("Firebase database not initialized!");
+      const authDoc = await db.collection("_admin_config").doc("auth").get();
+      if (!authDoc.exists || !authDoc.data() || !authDoc.data().pass_hash) {
+        isFirstTimeAdminSetup = true;
+        if (modalTitle) modalTitle.innerText = "🔐 Set Admin Password (Initial Setup)";
+        if (modalDesc) modalDesc.innerText = "No admin password exists in Firebase database yet. Enter your Secret Master Admin Password:";
+        if (passInput) passInput.placeholder = "Set New Master Admin Password...";
+        if (unlockBtn) unlockBtn.innerText = "Set & Secure 🔒";
+        if (errEl) errEl.innerText = "";
+        if (changePinBtn) changePinBtn.style.display = "none";
+      } else {
+        isFirstTimeAdminSetup = false;
+        if (modalTitle) modalTitle.innerText = "🔐 Admin Authentication";
+        if (modalDesc) modalDesc.innerText = "Enter Cloud Database Admin Password to access Admin Tools:";
+        if (passInput) passInput.placeholder = "Enter Master Admin Password...";
+        if (unlockBtn) unlockBtn.innerText = "Unlock 🔓";
+        if (errEl) errEl.innerText = "";
+        if (changePinBtn) changePinBtn.style.display = "inline-flex";
+      }
+    } catch (err) {
+      if (errEl) errEl.innerText = "⚠️ " + err.message;
+    }
+
+    setTimeout(() => { if (passInput) passInput.focus(); }, 150);
+  }
+
+  async function verifyAdminPassword() {
+    const passInput = document.getElementById('admin-pass-input');
+    const entered = (passInput ? passInput.value : '').trim();
+    const errEl = document.getElementById('admin-pass-error');
+    const unlockBtn = document.getElementById('btn-admin-unlock');
+
+    if (!entered || entered.length < 4) {
+      if (errEl) errEl.innerText = "❌ Password must be at least 4 characters long!";
+      return;
+    }
+
+    if (unlockBtn) {
+      unlockBtn.disabled = true;
+      unlockBtn.innerText = "Verifying ⏳...";
+    }
+
+    try {
+      if (!db) throw new Error("Firebase database not connected!");
+      const enteredHash = await sha256(entered);
+      const authRef = db.collection("_admin_config").doc("auth");
+      const authDoc = await authRef.get();
+
+      if (!authDoc.exists || !authDoc.data() || !authDoc.data().pass_hash || isFirstTimeAdminSetup) {
+        await authRef.set({
+          pass_hash: enteredHash,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        sessionStorage.setItem('copypro_admin_auth', 'true');
+        closeModal('admin-auth-modal');
+        updateAdminUIState(true);
+        showToast("Master Password Saved to Database! 🔐", "✅");
+        playSound('correct');
+        if (typeof pendingAdminAction === 'function') {
+          const action = pendingAdminAction;
+          pendingAdminAction = null;
+          action();
+        }
+      } else {
+        const dbHash = authDoc.data().pass_hash;
+        if (enteredHash === dbHash) {
+          sessionStorage.setItem('copypro_admin_auth', 'true');
+          closeModal('admin-auth-modal');
+          updateAdminUIState(true);
+          showToast("Admin Verified from Cloud Database 🔓", "✅");
+          playSound('correct');
+          if (typeof pendingAdminAction === 'function') {
+            const action = pendingAdminAction;
+            pendingAdminAction = null;
+            action();
+          }
+        } else {
+          playSound('wrong');
+          if (errEl) errEl.innerText = "❌ Incorrect Admin Password! Access Denied.";
+          if (passInput) {
+            passInput.classList.add('shake-anim');
+            setTimeout(() => passInput.classList.remove('shake-anim'), 500);
+          }
+        }
+      }
+    } catch (err) {
+      if (errEl) errEl.innerText = "❌ Verification error: " + err.message;
+    } finally {
+      if (unlockBtn) {
+        unlockBtn.disabled = false;
+        unlockBtn.innerText = isFirstTimeAdminSetup ? "Set & Secure 🔒" : "Unlock 🔓";
+      }
+    }
+  }
+
+  async function changeAdminPassword() {
+    if (!db) return alert("Firebase is not connected!");
+    const currentPass = prompt("Enter CURRENT Cloud Database Admin Password:");
+    if (!currentPass) return;
+
+    try {
+      const currentHash = await sha256(currentPass.trim());
+      const authRef = db.collection("_admin_config").doc("auth");
+      const authDoc = await authRef.get();
+
+      if (!authDoc.exists || authDoc.data().pass_hash !== currentHash) {
+        alert("❌ Current password incorrect! Unauthorized.");
+        return;
+      }
+
+      const newPass = prompt("Enter NEW Admin Password (At least 4 characters):");
+      if (!newPass || newPass.trim().length < 4) {
+        alert("❌ New password must be at least 4 characters long!");
+        return;
+      }
+
+      const newHash = await sha256(newPass.trim());
+      await authRef.update({
+        pass_hash: newHash,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      alert("✅ Admin Password successfully updated in Cloud Database!");
+      showToast("Password Updated in Database! 🔑", "✅");
+      sessionStorage.setItem('copypro_admin_auth', 'true');
+      updateAdminUIState(true);
+      closeModal('admin-auth-modal');
+    } catch (err) {
+      alert("Error updating password: " + err.message);
+    }
+  }
+
+  function showToast(msg, icon = '⚡') {
+    const toast = document.getElementById('app-toast');
+    const toastText = document.getElementById('app-toast-text');
+    const toastIcon = document.getElementById('app-toast-icon');
+    if (!toast || !toastText) return;
+    toastText.innerText = msg;
+    if (toastIcon) toastIcon.innerText = icon;
+    toast.classList.add('active');
+    setTimeout(() => { toast.classList.remove('active'); }, 2500);
+  }
+
+  function playSound(type) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+
+      if (type === 'mic_on') {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine'; osc2.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc2.frequency.setValueAtTime(783.99, now + 0.05); // G5
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc1.start(now); osc2.start(now + 0.05);
+        osc1.stop(now + 0.16); osc2.stop(now + 0.16);
+      } else if (type === 'mic_off') {
+        const osc1 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, now); // E5
+        osc1.frequency.exponentialRampToValueAtTime(440.00, now + 0.12); // A4
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc1.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(now); osc1.stop(now + 0.12);
+      } else if (type === 'next') {
+        const osc1 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(659.25, now); // E5
+        osc1.frequency.exponentialRampToValueAtTime(987.77, now + 0.09); // B5
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc1.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(now); osc1.stop(now + 0.14);
+      } else if (type === 'prev') {
+        const osc1 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(783.99, now); // G5
+        osc1.frequency.exponentialRampToValueAtTime(523.25, now + 0.09); // C5
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+        osc1.connect(gain); gain.connect(audioCtx.destination);
+        osc1.start(now); osc1.stop(now + 0.14);
+      } else if (type === 'correct') {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc1.type = 'sine'; osc2.type = 'triangle';
+        osc1.frequency.setValueAtTime(523.25, now); // C5
+        osc1.frequency.setValueAtTime(659.25, now + 0.06); // E5
+        osc2.frequency.setValueAtTime(1046.50, now + 0.1); // C6
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+        osc1.connect(gain); osc2.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc1.start(now); osc2.start(now + 0.08);
+        osc1.stop(now + 0.28); osc2.stop(now + 0.28);
+      } else if (type === 'wrong') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(196.00, now);
+        osc.frequency.setValueAtTime(164.81, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.2);
+      }
+    } catch(e) {}
+  }
+
+  function switchView(viewName) {
+    document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+
+    const activeView = document.getElementById('view-' + viewName);
+    if (activeView) activeView.classList.add('active');
+
+    const tabBtn = document.getElementById('tab-' + viewName);
+    if (tabBtn) tabBtn.classList.add('active');
+
+    if (viewName === 'table') renderTableRows();
+    if (viewName === 'dashboard') fetchCloudTopics(false);
+  }
+
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  // Table Controller
+  function renderTableRows() {
+    const tbody = document.getElementById('editor-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    tableQuestions.forEach((q, idx) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align:center; font-weight:700; color:var(--accent-cyan);">${idx + 1}</td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.question)}" onchange="updateCell(${idx}, 'question', this.value)" placeholder="Enter question..." /></td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.optionA)}" onchange="updateCell(${idx}, 'optionA', this.value)" placeholder="Option A" /></td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.optionB)}" onchange="updateCell(${idx}, 'optionB', this.value)" placeholder="Option B" /></td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.optionC)}" onchange="updateCell(${idx}, 'optionC', this.value)" placeholder="Option C" /></td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.optionD)}" onchange="updateCell(${idx}, 'optionD', this.value)" placeholder="Option D" /></td>
+        <td style="text-align:center;">
+          <select class="table-select-ans" onchange="updateCell(${idx}, 'answer', this.value)">
+            <option value="A" ${q.answer === 'A' ? 'selected' : ''}>A</option>
+            <option value="B" ${q.answer === 'B' ? 'selected' : ''}>B</option>
+            <option value="C" ${q.answer === 'C' ? 'selected' : ''}>C</option>
+            <option value="D" ${q.answer === 'D' ? 'selected' : ''}>D</option>
+          </select>
+        </td>
+        <td><input type="text" class="table-input" value="${escapeAttr(q.solution || '')}" onchange="updateCell(${idx}, 'solution', this.value)" placeholder="Explanation..." /></td>
+        <td style="text-align:center;">
+          <button class="btn-del-row" onclick="deleteTableRow(${idx})" title="Delete Question">🗑️</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('lbl-table-count').innerText = `${tableQuestions.length} Questions`;
+  }
+
+  function updateCell(idx, field, value) {
+    if (tableQuestions[idx]) tableQuestions[idx][field] = value;
+  }
+
+  function addNewEmptyRow() {
+    tableQuestions.push({ question: "", optionA: "", optionB: "", optionC: "", optionD: "", answer: "A", solution: "" });
+    renderTableRows();
+    const wrap = document.querySelector('.quiz-editor-table-wrap');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function deleteTableRow(idx) {
+    tableQuestions.splice(idx, 1);
+    renderTableRows();
+  }
+
+  function clearAllTableRows() {
+    if (confirm("Clear all questions from table?")) {
+      tableQuestions = [];
+      renderTableRows();
+      showToast("Table Cleared", "🧹");
+    }
+  }
+
+  function startQuizFromTable() {
+    const validQuestions = tableQuestions.filter(q => q.question && q.question.trim());
+    if (!validQuestions.length) return alert("Please add at least one question to the table first!");
+    startQuizWithData(validQuestions, "Laptop Practice Test");
+  }
+
+  // Save / Load Local
+  function saveLocalQuizzes() {
+    if (!tableQuestions.length) return alert("Table is empty!");
+    const title = prompt("Enter a name for this Local Quiz:", "My Saved Quiz " + new Date().toLocaleDateString());
+    if (!title) return;
+
+    const saved = JSON.parse(localStorage.getItem('copypro_local_quizzes') || '[]');
+    saved.unshift({ id: 'local_' + Date.now(), title: title, date: new Date().toLocaleString(), questions: tableQuestions });
+    localStorage.setItem('copypro_local_quizzes', JSON.stringify(saved));
+
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tableQuestions, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `${title.replace(/\s+/g, '_')}.json`);
+    dlAnchor.click();
+
+    showToast(`Saved '${title}' Locally!`, "💾");
+  }
+
+  function openLoadLocalModal() {
+    const listContainer = document.getElementById('local-storage-list');
+    const saved = JSON.parse(localStorage.getItem('copypro_local_quizzes') || '[]');
+    if (!saved.length) {
+      listContainer.innerHTML = '<p style="color:var(--text-dim); font-size:13px;">No saved quizzes found in browser storage.</p>';
+    } else {
+      listContainer.innerHTML = saved.map((item, idx) => `
+        <div style="background:var(--bg-input); border:1px solid var(--border-color); padding:10px 12px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:700; color:#FFF; font-size:13.5px;">${escapeHtml(item.title)}</div>
+            <div style="font-size:11.5px; color:var(--text-dim);">${item.questions.length} Questions • ${item.date}</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-primary" onclick="loadLocalStorageItem(${idx})">Load</button>
+            <button class="btn-del-row" onclick="deleteLocalStorageItem(${idx})">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    openModal('load-local-modal');
+  }
+
+  function loadLocalStorageItem(idx) {
+    const saved = JSON.parse(localStorage.getItem('copypro_local_quizzes') || '[]');
+    if (saved[idx]) {
+      tableQuestions = saved[idx].questions;
+      renderTableRows();
+      closeModal('load-local-modal');
+      switchView('table');
+      showToast(`Loaded '${saved[idx].title}'!`, "📁");
+    }
+  }
+
+  function deleteLocalStorageItem(idx) {
+    const saved = JSON.parse(localStorage.getItem('copypro_local_quizzes') || '[]');
+    saved.splice(idx, 1);
+    localStorage.setItem('copypro_local_quizzes', JSON.stringify(saved));
+    openLoadLocalModal();
+  }
+
+  async function handleLocalFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const fileName = file.name.toLowerCase();
+
+    // 🗄️ SQLITE DATABASE (.db, .sqlite, .sqlite3) SUPPORT
+    if (fileName.endsWith('.db') || fileName.endsWith('.sqlite') || fileName.endsWith('.sqlite3')) {
+      showToast("⏳ Reading SQLite DB file...", "🔄");
+      try {
+        if (typeof window.initSqlJs === 'undefined') {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+        const SQL = await window.initSqlJs({
+          locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${f}`
+        });
+
+        const arrayBuffer = await file.arrayBuffer();
+        const uInt8Array = new Uint8Array(arrayBuffer);
+        const sqliteDb = new SQL.Database(uInt8Array);
+
+        // Fetch all non-internal tables
+        const tablesRes = sqliteDb.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+        if (!tablesRes.length || !tablesRes[0].values.length) {
+          alert("No tables found in this SQLite database.");
+          return;
+        }
+
+        const tableNames = tablesRes[0].values.map(v => v[0]);
+        // Pick best table (prioritize question/quiz/mcq/test)
+        let chosenTable = tableNames.find(t => /question|quiz|mcq|test/i.test(t)) || tableNames[0];
+
+        // Read table contents
+        const queryRes = sqliteDb.exec(`SELECT * FROM "${chosenTable}"`);
+        if (!queryRes.length || !queryRes[0].values.length) {
+          alert(`Table "${chosenTable}" is empty.`);
+          return;
+        }
+
+        const cols = queryRes[0].columns.map(c => c.toLowerCase());
+        const rows = queryRes[0].values;
+
+        function findColIdx(...patterns) {
+          for (let p of patterns) {
+            for (let i = 0; i < cols.length; i++) {
+              if (cols[i] === p || cols[i].startsWith(p + '_') || cols[i].endsWith('_' + p) || cols[i].includes(p)) {
+                return i;
+              }
+            }
+          }
+          return -1;
+        }
+
+        const qIdx = findColIdx('question_en', 'question', 'q', 'question_text', 'title', 'prompt');
+        const qHnIdx = findColIdx('question_hn', 'question_hi', 'question_hindi');
+        const optAIdx = findColIdx('option_1_en', 'option_1', 'optiona', 'option_a', 'opta', 'opt1', 'choice_a', 'choice1', 'opt_1', 'a');
+        const optBIdx = findColIdx('option_2_en', 'option_2', 'optionb', 'option_b', 'optb', 'opt2', 'choice_b', 'choice2', 'opt_2', 'b');
+        const optCIdx = findColIdx('option_3_en', 'option_3', 'optionc', 'option_c', 'optc', 'opt3', 'choice_c', 'choice3', 'opt_3', 'c');
+        const optDIdx = findColIdx('option_4_en', 'option_4', 'optiond', 'option_d', 'optd', 'opt4', 'choice_d', 'choice4', 'opt_4', 'd');
+        const ansIdx = findColIdx('correct_option', 'answer', 'correct_ans', 'ans', 'correct', 'answer_key', 'key');
+        const solIdx = findColIdx('solution_en', 'solution', 'explanation', 'exp', 'sol', 'solution_hn');
+
+        function cleanHtml(val) {
+          if (val === null || val === undefined) return "";
+          let s = String(val).replace(/<br\s*[\/]?>/gi, "\n").replace(/<\/p>/gi, "\n").replace(/<[^>]+>/g, "");
+          const txt = document.createElement("textarea");
+          txt.innerHTML = s;
+          return txt.value.trim();
+        }
+
+        const parsedFromDb = [];
+        for (let r of rows) {
+          let qEn = qIdx >= 0 ? cleanHtml(r[qIdx]) : "";
+          let qHn = qHnIdx >= 0 ? cleanHtml(r[qHnIdx]) : "";
+          let qText = "";
+          if (qEn && qHn && qEn !== qHn) {
+            qText = qEn + "\n\n[Hindi]: " + qHn;
+          } else {
+            qText = qEn || qHn || "";
+          }
+
+          let optA = optAIdx >= 0 ? cleanHtml(r[optAIdx]) : "";
+          let optB = optBIdx >= 0 ? cleanHtml(r[optBIdx]) : "";
+          let optC = optCIdx >= 0 ? cleanHtml(r[optCIdx]) : "";
+          let optD = optDIdx >= 0 ? cleanHtml(r[optDIdx]) : "";
+
+          let rawAns = ansIdx >= 0 && r[ansIdx] !== null ? String(r[ansIdx]).trim() : "";
+          let ans = "A";
+          if (rawAns === "1" || rawAns === "1.0") ans = "A";
+          else if (rawAns === "2" || rawAns === "2.0") ans = "B";
+          else if (rawAns === "3" || rawAns === "3.0") ans = "C";
+          else if (rawAns === "4" || rawAns === "4.0") ans = "D";
+          else if (['A', 'B', 'C', 'D'].includes(rawAns.toUpperCase())) ans = rawAns.toUpperCase();
+          else {
+            if (optA && rawAns === optA) ans = "A";
+            else if (optB && rawAns === optB) ans = "B";
+            else if (optC && rawAns === optC) ans = "C";
+            else if (optD && rawAns === optD) ans = "D";
+            else ans = rawAns || "A";
+          }
+
+          let sol = solIdx >= 0 ? cleanHtml(r[solIdx]) : "";
+
+          if (qText || optA || optB) {
+            parsedFromDb.push({
+              question: qText,
+              optionA: optA,
+              optionB: optB,
+              optionC: optC,
+              optionD: optD,
+              answer: ans,
+              solution: sol
+            });
+          }
+        }
+
+        if (parsedFromDb.length) {
+          tableQuestions = parsedFromDb;
+          renderTableRows();
+          closeModal('load-local-modal');
+          switchView('table');
+          showToast(`Loaded ${parsedFromDb.length} questions from ${file.name}!`, "✅");
+        } else {
+          alert("Could not extract any questions from the SQLite DB.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to load SQLite DB: " + err.message);
+      }
+      return;
+    }
+
+    // 📊 EXCEL (.xlsx, .xls) SUPPORT
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      showToast("⏳ Reading Excel file...", "🔄");
+      try {
+        if (typeof window.XLSX === 'undefined') {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+        }
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        
+        const parsedExcel = [];
+        for (let row of jsonData) {
+          if (!row || !row.length) continue;
+          const firstVal = String(row[0] || '').trim().toLowerCase();
+          if (['question', 'q', 'questions', 'mcq'].includes(firstVal)) continue;
+          if (row.some(v => String(v || '').trim())) {
+            parsedExcel.push({
+              question: String(row[0] || '').trim(),
+              optionA: String(row[1] || '').trim(),
+              optionB: String(row[2] || '').trim(),
+              optionC: String(row[3] || '').trim(),
+              optionD: String(row[4] || '').trim(),
+              answer: String(row[5] || 'A').trim().toUpperCase(),
+              solution: String(row[6] || '').trim()
+            });
+          }
+        }
+        if (parsedExcel.length) {
+          tableQuestions = parsedExcel;
+          renderTableRows();
+          closeModal('load-local-modal');
+          switchView('table');
+          showToast(`Loaded ${parsedExcel.length} questions from Excel!`, "✅");
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // 📄 JSON / TEXT / CSV / TSV SUPPORT
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const content = e.target.result;
+      try {
+        const parsedJson = JSON.parse(content);
+        if (Array.isArray(parsedJson)) {
+          tableQuestions = parsedJson;
+          renderTableRows();
+          closeModal('load-local-modal');
+          switchView('table');
+          showToast(`Loaded ${parsedJson.length} questions from JSON!`, "✅");
+          return;
+        }
+      } catch(err) {}
+
+      const parsedText = parseUniversalMCQ(content, 'auto', true);
+      if (parsedText.length) {
+        tableQuestions = parsedText;
+        renderTableRows();
+        closeModal('load-local-modal');
+        switchView('table');
+        showToast(`Loaded ${parsedText.length} questions from file!`, "✅");
+      } else {
+        alert("Could not parse questions from file.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Cloud Sync (Admin Protected)
+  function openCloudSyncModal() {
+    if (!db) return alert("Firebase is not initialized!");
+    if (!tableQuestions.length) return alert("Table is empty! Add questions first.");
+    openModal('cloud-sync-modal');
+  }
+
+  async function performCloudSync() {
+    if (!isAdminLoggedIn()) return alert("Unauthorized! Please login as Admin.");
+    const topic = document.getElementById('sync-topic').value.trim();
+    const subject = document.getElementById('sync-subject').value.trim();
+    const testCode = document.getElementById('sync-test-code').value.trim().toUpperCase();
+    const statusMsg = document.getElementById('sync-status-msg');
+
+    if (!topic || !subject || !testCode) return alert("Please fill Topic, Subject and Test Code!");
+    statusMsg.innerText = "⏳ Uploading batch to Firebase...";
+
+    try {
+      const batch = db.batch();
+      tableQuestions.forEach(q => {
+        const docRef = db.collection("quizzes").doc();
+        batch.set(docRef, {
+          topic: topic,
+          subject: subject,
+          test_code: testCode,
+          question: q.question || "",
+          optionA: q.optionA || "",
+          optionB: q.optionB || "",
+          optionC: q.optionC || "",
+          optionD: q.optionD || "",
+          answer: q.answer || "A",
+          solution: q.solution || "",
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+      statusMsg.innerText = "✅ Successfully synced to Firebase!";
+      showToast(`Synced '${topic}' to Cloud Database!`, "🔥");
+      closeModal('cloud-sync-modal');
+      fetchCloudTopics(true);
+    } catch(err) {
+      statusMsg.innerText = "❌ Sync failed: " + err.message;
+      alert("Cloud Sync failed: " + err.message);
+    }
+  }
+
+  // Cloud History (Admin Protected)
+  function openCloudHistoryModal() {
+    openModal('cloud-history-modal');
+    loadCloudHistoryList(false);
+  }
+
+  async function loadCloudHistoryList(forceFresh) {
+    const tbody = document.getElementById('cloud-history-tbody');
+    
+    if (allCloudTopics.length && !forceFresh) {
+      renderCloudHistoryTable(allCloudTopics);
+      return;
+    }
+
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px;">⏳ Loading tests from Firebase Firestore...</td></tr>';
+    if (!db) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--accent-red); padding:20px;">Firebase not connected.</td></tr>';
+      return;
+    }
+
+    await fetchCloudTopics(forceFresh);
+    renderCloudHistoryTable(allCloudTopics);
+  }
+
+  function renderCloudHistoryTable(topics) {
+    const tbody = document.getElementById('cloud-history-tbody');
+    if (!tbody) return;
+    if (!topics.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:20px;">No tests found in cloud database. Use "Cloud Sync" to upload tests!</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = topics.map((t, idx) => `
+      <tr>
+        <td style="font-weight:700; color:#FFF;">${escapeHtml(t.topic)}</td>
+        <td><span class="quiz-subject-badge">${escapeHtml(t.subject)}</span></td>
+        <td style="font-family:var(--font-heading); font-weight:700; color:var(--accent-cyan);">${escapeHtml(t.test_code)}</td>
+        <td style="color:var(--text-muted);">${t.count} Questions</td>
+        <td style="text-align:center; display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+          <button class="btn-primary" onclick="loadCloudTopicToTable(${idx})" title="Load into Table Editor">📥 Edit</button>
+          <button class="btn-success" onclick="startCloudTopicQuiz(${idx})" title="Play CBT Quiz">🎮 Play</button>
+          <button class="btn-del-row" onclick="deleteCloudTopic(${idx})" title="Delete from Cloud">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function loadCloudTopicToTable(idx) {
+    const item = allCloudTopics[idx];
+    if (item && item.docs && item.docs.length) {
+      tableQuestions = item.docs.map(d => ({
+        question: d.question || "",
+        optionA: d.optionA || "",
+        optionB: d.optionB || "",
+        optionC: d.optionC || "",
+        optionD: d.optionD || "",
+        answer: d.answer || "A",
+        solution: d.solution || ""
+      }));
+      renderTableRows();
+      closeModal('cloud-history-modal');
+      switchView('table');
+      showToast(`Loaded ${tableQuestions.length} questions into table!`, "📥");
+    }
+  }
+
+  function startCloudTopicQuiz(idx) {
+    const item = allCloudTopics[idx];
+    if (item && item.docs && item.docs.length) {
+      closeModal('cloud-history-modal');
+      startQuizWithData(item.docs, item.topic);
+    }
+  }
+
+  async function deleteCloudTopic(idx) {
+    const item = allCloudTopics[idx];
+    if (!item) return;
+
+    requireAdminAuth(async () => {
+      if (confirm(`Delete all ${item.count} questions of '${item.topic}' from Cloud Database?`)) {
+        try {
+          showToast(`Deleting '${item.topic}'...`, "⏳");
+          const batch = db.batch();
+          if (item.docIds && item.docIds.length) {
+            item.docIds.forEach(id => batch.delete(db.collection("quizzes").doc(id)));
+          } else {
+            const snap = await db.collection("quizzes").where("topic", "==", item.topic).get();
+            snap.forEach(doc => batch.delete(doc.ref));
+          }
+          await batch.commit();
+          showToast(`Deleted '${item.topic}'!`, "🗑️");
+          fetchCloudTopics(true);
+        } catch(err) {
+          alert("Failed to delete: " + err.message);
+        }
+      }
+    });
+  }
+
+    const DEFAULT_FALLBACK_TOPICS = [{"topic": "Percentage Fundamentals & Shortcuts", "subject": "Mathematics", "test_code": "M01", "count": 43, "docs": [{"question": "How would you express 48% as a fraction?", "optionA": "1/25", "optionB": "10/25", "optionC": "12/25", "optionD": "11/25", "answer": "C", "solution": "48/100 = 12/25"}, {"question": "The value of 4/5 % is equal to which of these fractions?", "optionA": "1/25", "optionB": "1/125", "optionC": "1/725", "optionD": "4/125", "answer": "B", "solution": "(4/5)×(1/100)=1/125"}, {"question": "Find the value of 8 per cent of 20 per cent of 40.", "optionA": "0.80", "optionB": "4.80", "optionC": "6.64", "optionD": "0.64", "answer": "D", "solution": "40×0.2×0.08=0.64"}, {"question": "What is 15% of 40% of 45% of 45000?", "optionA": "739", "optionB": "719", "optionC": "749", "optionD": "729", "answer": "D", "solution": "45000×0.45×0.40×0.15=729"}, {"question": "What is the value of 9% of 5500 + 2.4% of 1100 – 40% of 1600?", "optionA": "118.6", "optionB": "-118.6", "optionC": "-181.6", "optionD": "181.6", "answer": "B", "solution": "495+26.4-640=-118.6"}, {"question": "If 28% of a number is equal to 20, then find the value of 49% of the same number.", "optionA": "30", "optionB": "35", "optionC": "40", "optionD": "45", "answer": "B", "solution": "x×28/100=20⇒x=71.43⇒49%=35"}, {"question": "Ravi scores 72% marks in the examination. If these are 360 marks, then the maximum marks are:", "optionA": "500", "optionB": "450", "optionC": "400", "optionD": "350", "answer": "A", "solution": "360/72×100=500"}, {"question": "If 36% of x = 81% of y, then find the value of x : y.", "optionA": "9:25", "optionB": "9:4", "optionC": "4:9", "optionD": "81:100", "answer": "B", "solution": "x/y=81/36=9/4"}, {"question": "If 12% of a = 25% of b, then find the value of a : b.", "optionA": "25:12", "optionB": "12:25", "optionC": "3:5", "optionD": "5:3", "answer": "A", "solution": "a/b=25/12"}, {"question": "65% of the first number is 130 and 40% of the second number is 100. Find the ratio of the first number and the second number.", "optionA": "4:5", "optionB": "8:5", "optionC": "5:8", "optionD": "1:2", "answer": "A", "solution": "a=200,b=250⇒4:5"}, {"question": "If 20% of 75 = 225 – x% of 420, then find the value of x.", "optionA": "50", "optionB": "1535", "optionC": "20", "optionD": "3", "answer": "A", "solution": "15=225-4.2x⇒x=50"}, {"question": "Find x, if 30% of 400 + x% of 70 = 25% of 536.", "optionA": "10", "optionB": "40", "optionC": "30", "optionD": "20", "answer": "D", "solution": "120+0.7x=134⇒x=20"}, {"question": "If 10% of 20 + 20% of 30 + 30% of 40 + 40% of 50 = x% of 800, find the value of x.", "optionA": "8", "optionB": "14", "optionC": "5", "optionD": "4", "answer": "C", "solution": "Sum=40⇒x=5"}, {"question": "What percentage of 250 is 700?", "optionA": "280", "optionB": "230", "optionC": "270", "optionD": "250", "answer": "A", "solution": "(700/250)×100=280%"}, {"question": "If 40% of 70 is x% more than 30% of 80, then find ‘x’.", "optionA": "16.67", "optionB": "33.33", "optionC": "150", "optionD": "400", "answer": "B", "solution": "(28-24)/24×100=33.33%"}, {"question": "If the word PHOTOGRAPH is spelt with ‘F’ in place of ‘PH’, then what would be the percentage reduction in the number of letters?", "optionA": "25%", "optionB": "10%", "optionC": "20%", "optionD": "18%", "answer": "C", "solution": "10→8 letters⇒20%"}, {"question": "Gaurav earns ₹800 per day. After some weeks, he earns ₹960 per day. What is the percentage increase in his daily earning?", "optionA": "20%", "optionB": "16%", "optionC": "14%", "optionD": "18%", "answer": "A", "solution": "(160/800)×100=20%"}, {"question": "If A's salary is 50% more than B's, then by what per cent is B's salary less than A's?", "optionA": "28 2/7%", "optionB": "28 5/7%", "optionC": "28 4/7%", "optionD": "28 3/7%", "answer": "A", "solution": "A:B=3:2 ⇒ diff=1/3"}, {"question": "If A's income is 35% more than B's income, then what percentage of B's income is less (to the nearest integer) than A's income?", "optionA": "17%", "optionB": "19%", "optionC": "15%", "optionD": "23%", "answer": "B", "solution": "Ratio method"}, {"question": "If B is one-third of A, by what percentage is B less than A?", "optionA": "16.66%", "optionB": "75%", "optionC": "66.66%", "optionD": "33.33%", "answer": "C", "solution": "2/3=66.66%"}, {"question": "Sachin's income is 25% more than Deepesh's income. Deepesh's income is how much less than Sachin's income?", "optionA": "22%", "optionB": "15%", "optionC": "20%", "optionD": "18%", "answer": "C", "solution": "1/5=20%"}, {"question": "Mohan's income is 40% more than Shyam's income. Shyam's income is what per cent less than Mohan's income?", "optionA": "28%", "optionB": "30%", "optionC": "25%", "optionD": "20%", "answer": "A", "solution": "2/7≈28%"}, {"question": "The difference of two numbers is equal to 30% of their sum. Find the ratio of the larger number and the smaller number.", "optionA": "15:7", "optionB": "13:7", "optionC": "2:1", "optionD": "17:15", "answer": "A", "solution": "Solve ratio eqn"}, {"question": "If A is 35% more than B, then what percent is B less than A?", "optionA": "23%", "optionB": "19%", "optionC": "30 1/6%", "optionD": "13 1/6%", "answer": "B", "solution": "Standard conversion"}, {"question": "There has been a 25% increase in the rice stock in a shop. What percentage of the rice stock should be sold so that the stock becomes again as it was in the beginning?", "optionA": "25%", "optionB": "30%", "optionC": "12.50%", "optionD": "20%", "answer": "D", "solution": "25/125=20%"}, {"question": "A number is increased by 20%. To get back the original number, the increased number should be reduced by what percentage?", "optionA": "20%", "optionB": "21%", "optionC": "16 2/3%", "optionD": "14 2/3%", "answer": "C", "solution": "20/120"}, {"question": "Two students Sarita and Ramesh are paid a total amount of Rs. 6,600 per month. If Anita is paid 120% of the amount given to Sarita, then what amount will Sarita get?", "optionA": "Rs. 3,000", "optionB": "Rs. 30,000", "optionC": "Rs. 5,000", "optionD": "Rs. 4,500", "answer": "D", "solution": "Ratio method"}, {"question": "If 45% of a number is 15 less than 70% of that number, then find that number.", "optionA": "50", "optionB": "60", "optionC": "70", "optionD": "40", "answer": "B", "solution": "0.25x=15"}, {"question": "If the difference between 62% and 80% of a number is 198, find the difference between 92% and 56% of that number.", "optionA": "3564", "optionB": "360", "optionC": "396", "optionD": "1100", "answer": "C", "solution": "x=1100"}, {"question": "Two students A and B were paid a total of ₹ 4,400 as prize money. If A was paid 120 per cent of the amount paid to B, then how much amount (in rupees) was paid to B?", "optionA": "2400", "optionB": "2000", "optionC": "1800", "optionD": "1500", "answer": "B", "solution": "Ratio 6:5"}, {"question": "The income of a man first increased by 20% and then again by 30%. Find out overall percentage increase.", "optionA": "58", "optionB": "54", "optionC": "60", "optionD": "56", "answer": "D", "solution": "1.2×1.3=1.56 ⇒ 56%"}, {"question": "If a number is increased by 20%. Then it is decreased by 10%. Find its net increase or decrease.", "optionA": "8% increase", "optionB": "10% decrease", "optionC": "10% increase", "optionD": "8% decrease", "answer": "A", "solution": "1.2×0.9=1.08 ⇒ 8% inc"}, {"question": "The price of a book was first increased by 25% and then reduced by 20%. What is the change in its original price?", "optionA": "10% increase", "optionB": "No change", "optionC": "5% decrease", "optionD": "10% decrease", "answer": "B", "solution": "1.25×0.8=1"}, {"question": "The salary of an employee first increases by 50% and thereafter decreases by 54%. What was the overall percentage change in his salary?", "optionA": "4% increase", "optionB": "31% decrease", "optionC": "31% increase", "optionD": "4% decrease", "answer": "B", "solution": "1.5×0.46=0.69"}, {"question": "If each side of a rectangle is decreased by 11%, then its area will decrease by:", "optionA": "25%", "optionB": "21.13%", "optionC": "24.3%", "optionD": "20.79%", "answer": "B", "solution": "0.89²≈0.79"}, {"question": "If each side of a square is decreased by 17%, then by what percent does its area decrease?", "optionA": "31.11%", "optionB": "25%", "optionC": "30.79%", "optionD": "44.31%", "answer": "C", "solution": "0.83²≈0.69"}, {"question": "If each side of a rectangle is increased by 22%, then its area will increase by:", "optionA": "44%", "optionB": "50%", "optionC": "46.65%", "optionD": "48.84%", "answer": "D", "solution": "1.22²=1.4884"}, {"question": "A rectangle has a width ‘a’ and length ‘b’. If the width is decreased by 20% and the length is increased by 10%, then what is the area of the new rectangle in percentage compared to ‘ab’?", "optionA": "120%", "optionB": "110%", "optionC": "80%", "optionD": "88%", "answer": "D", "solution": "0.8×1.1=0.88"}, {"question": "If the radius of a circle is decreased by 35%, then its area decreases by:", "optionA": "57 3/4%", "optionB": "57 2/9%", "optionC": "56 3/4%", "optionD": "57 1/4%", "answer": "A", "solution": "0.65²=0.4225"}, {"question": "The radius of a circular cylinder increases by 50%. Find the increase in volume.", "optionA": "120%", "optionB": "125%", "optionC": "150%", "optionD": "75%", "answer": "B", "solution": "r² ⇒ 2.25"}, {"question": "The radius and height of a cylinder are increased by 50% and 75% respectively. Express the original volume as a percentage decrease of the new volume.", "optionA": "88.75%", "optionB": "48.75%", "optionC": "28.75%", "optionD": "25.39%", "answer": "C", "solution": "ratio method"}, {"question": "The radius of a cylinder is increased by 50% and its height is decreased by 20%. What is the percentage increase in its volume?", "optionA": "400%", "optionB": "500%", "optionC": "80%", "optionD": "600%", "answer": "C", "solution": "1.5²×0.8=1.8"}, {"question": "In an examination of 180 marks of a subject, 75% marks are allocated for theory and the rest for project work. Veena scored 60% in theory. What percentage of marks must she score in the project to achieve an overall 62% marks in the subject?", "optionA": "65%", "optionB": "70%", "optionC": "75%", "optionD": "80%", "answer": "B", "solution": "Weighted avg method"}], "docIds": []}, {"topic": "Divisibility Rules & Number System", "subject": "Mathematics", "test_code": "M02", "count": 16, "docs": [{"question": "Which of these numbers is divisible by 6?", "optionA": "23456", "optionB": "45678", "optionC": "56792", "optionD": "34672", "answer": "B", "solution": "Check divisibility by 2 and 3"}, {"question": "Which of the following numbers is divisible by 12?", "optionA": "53412", "optionB": "43412", "optionC": "33412", "optionD": "43112", "answer": "A", "solution": "Divisible by both 3 and 4"}, {"question": "If the number 34k56k is divisible by 6, what will be the largest value of k?", "optionA": "8", "optionB": "4", "optionC": "6", "optionD": "9", "answer": "D", "solution": "Even digit + sum divisible by 3"}, {"question": "What is the value of k such that number 72k460k is divisible by 6?", "optionA": "4", "optionB": "9", "optionC": "7", "optionD": "8", "answer": "B", "solution": "Apply divisibility rules of 2 and 3"}, {"question": "If the number 93248x6 is divisible by 11, find the value of digit x", "optionA": "5", "optionB": "2", "optionC": "8", "optionD": "7", "answer": "D", "solution": "Use alternating sum rule of 11"}, {"question": "If N5921 is divisible by 11, find the value of smallest number N", "optionA": "9", "optionB": "7", "optionC": "6", "optionD": "8", "answer": "B", "solution": "Apply 11 rule and minimize N"}, {"question": "If the nine digit number 259876p05 is divisible by 11, then what is the value of (p + 5)?", "optionA": "48", "optionB": "45", "optionC": "54", "optionD": "50", "answer": "B", "solution": "Alternating sum rule"}, {"question": "If a number 54k31m82 is divisible by 11, what will be the maximum value of (k + m)?", "optionA": "11", "optionB": "23", "optionC": "13", "optionD": "12", "answer": "B", "solution": "Apply divisibility rule of 11"}, {"question": "If the number 4A306768B2 is divisible by both 8 and 11, then the smallest possible values of A and B are", "optionA": "A=3,B=5", "optionB": "A=5,B=4", "optionC": "A=5,B=2", "optionD": "A=5,B=3", "answer": "D", "solution": "Use rules of 8 (last 3 digits) and 11"}, {"question": "If the seven digit number 56x34y24 is divisible by 72, then what is the least value of (x+y)?", "optionA": "14", "optionB": "12", "optionC": "10", "optionD": "8", "answer": "B", "solution": "72 = 8×9 conditions"}, {"question": "If the seven digit number 94x29y6 is divisible by 72, then what is the value of (2x + 3y) for x ≠ y?", "optionA": "35", "optionB": "21", "optionC": "37", "optionD": "23", "answer": "A", "solution": "Apply divisibility rules of 8 and 9"}, {"question": "If the eight digit number 888x53y4 is divisible by 72, then what is the value of (7x + 2y), maximum value of y?", "optionA": "19", "optionB": "15", "optionC": "23", "optionD": "17", "answer": "B", "solution": "Apply 8 and 9 rules"}, {"question": "If a nine digit number 489x6378y is divisible by 72, then the value of √(8x + 6y) will be", "optionA": "8", "optionB": "6", "optionC": "10", "optionD": "4", "answer": "B", "solution": "Solve using divisibility rules"}, {"question": "If a 10-digit number 7220x558y2 is divisible by 88, then the value of (5x + 5y) is", "optionA": "10", "optionB": "25", "optionC": "15", "optionD": "35", "answer": "B", "solution": "88 = 8×11 rule"}, {"question": "If the nine-digit number 8475639AB is divisible by 99, then what is the value of A and B", "optionA": "A=4,B=6", "optionB": "A=4,B=8", "optionC": "A=3,B=9", "optionD": "A=5,B=3", "answer": "B", "solution": "99 = 9×11 rule"}, {"question": "Which among the following number is exactly divisible by 7, 11 and 13?", "optionA": "14982", "optionB": "15004", "optionC": "15004", "optionD": "15015", "answer": "D", "solution": "LCM(7,11,13)=1001"}], "docIds": []}, {"topic": "National Parks & Wildlife Sanctuaries of India", "subject": "General Knowledge", "test_code": "GK01", "count": 3, "docs": [{"question": "According to the data discussed, how many national parks were there in India prior to the Wildlife Protection Act of 1972 (up to 1970), and how many are there currently? / ক্লাসে আলোচিত তথ্য অনুযায়ী, ১৯৭২ সালের বন্যপ্রাণী সংরক্ষণ আইনের পূর্বে (১৯৭০ সাল পর্যন্ত) ভারতে কয়টি জাতীয় উদ্যান ছিল এবং বর্তমানে মোট কয়টি জাতীয় উদ্যান রয়েছে?", "optionA": "5 and 107 / ৫টি এবং ১০৭টি", "optionB": "10 and 105 / ১০টি এবং ১০৫টি", "optionC": "5 and 106 / ৫টি এবং ১০৬টি", "optionD": "3 and 107 / ৩টি এবং ১০৭টি", "answer": "A", "solution": "English: Up to 1970, India had only 5 National Parks. The current total is 107. | বাংলা: ১৯৭০ সাল পর্যন্ত ভারতে মাত্র ৫টি জাতীয় উদ্যান ছিল। বর্তমানে মোট ১০৭টি জাতীয় উদ্যান রয়েছে।"}, {"question": "Which of the following national parks is NOT located in the Andaman and Nicobar Islands? / নিচের কোন জাতীয় উদ্যানটি আন্দামান ও নিকোবর দ্বীপপুঞ্জে অবস্থিত নয়?", "optionA": "Galathea Bay National Park / গালাথিয়া বে জাতীয় উদ্যান", "optionB": "Campbell Bay National Park / ক্যাম্পবেল বে জাতীয় উদ্যান", "optionC": "Saddle Peak National Park / স্যাডেল পিক জাতীয় উদ্যান", "optionD": "Papikonda National Park / পাপিকোন্ডা জাতীয় উদ্যান", "answer": "D", "solution": "English: Papikonda National Park is in Andhra Pradesh, not Andaman & Nicobar."}, {"question": "Kaziranga National Park in Assam is famous for which endangered animal species?", "optionA": "Bengal Tiger", "optionB": "Great One-Horned Rhinoceros", "optionC": "Asiatic Lion", "optionD": "Snow Leopard", "answer": "B", "solution": "Kaziranga hosts two-thirds of the world's great one-horned rhinoceroses and is a UNESCO World Heritage Site."}], "docIds": []}];
+
+  function loadLocalCachedTopics() {
+    try {
+      const cached = localStorage.getItem('copypro_cloud_all_v4');
+      if (cached) {
+        allCloudTopics = JSON.parse(cached);
+        if (allCloudTopics && allCloudTopics.length) {
+          updateDatabaseStats();
+          renderSubjectTabs(allCloudTopics);
+          renderCloudDashboard(allCloudTopics);
+          return true;
+        }
+      }
+    } catch(e) {}
+
+    if (typeof DEFAULT_FALLBACK_TOPICS !== 'undefined' && DEFAULT_FALLBACK_TOPICS.length) {
+      allCloudTopics = JSON.parse(JSON.stringify(DEFAULT_FALLBACK_TOPICS));
+      try {
+        localStorage.setItem('copypro_cloud_all_v4', JSON.stringify(allCloudTopics));
+      } catch(e) {}
+      updateDatabaseStats();
+      renderSubjectTabs(allCloudTopics);
+      renderCloudDashboard(allCloudTopics);
+      return true;
+    }
+
+    return false;
+  }
+
+  function updateDatabaseStats() {
+    let totalQs = 0;
+    allCloudTopics.forEach(t => totalQs += (t.count || (t.docs ? t.docs.length : 0)));
+    const totalLbl = document.getElementById('lbl-total-db-count');
+    if (totalLbl) {
+      totalLbl.innerText = `${allCloudTopics.length} Tests (${totalQs} Questions)`;
+    }
+  }
+
+  function renderSkeletonShimmer() {
+    const grid = document.getElementById('topics-grid');
+    if (!grid) return;
+    grid.innerHTML = Array(8).fill(0).map(() => `<div class="skeleton-card"></div>`).join('');
+  }
+
+  async function fetchCloudTopics(forceFresh) {
+    if (!db || isFetchingCloud) return;
+    isFetchingCloud = true;
+
+    const hasCache = loadLocalCachedTopics();
+    if (!hasCache) renderSkeletonShimmer();
+
+    try {
+      const snapshot = await db.collection("quizzes").get();
+      
+      const grouped = {};
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const topic = (d.topic || d.title || d.topic_name || "Untitled Topic").trim();
+        let subject = (d.subject || d.category || d.subject_name || "General").trim();
+        
+        if (subject.toLowerCase() === 'current affairs') subject = 'Current Affairs';
+        else if (subject.toLowerCase() === 'technology') subject = 'Technology';
+        else if (subject.toLowerCase() === 'mathematics' || subject.toLowerCase() === 'maths') subject = 'Mathematics';
+        else if (subject.toLowerCase() === 'english') subject = 'English';
+        
+        const testCode = (d.test_code || d.testCode || d.code || "T01").trim().toUpperCase();
+
+        const key = topic + "|||" + subject;
+        if (!grouped[key]) {
+          grouped[key] = {
+            topic: topic,
+            subject: subject,
+            test_code: testCode,
+            count: 0,
+            docs: [],
+            docIds: []
+          };
+        }
+
+        const qObj = {
+          question: d.question || d.q || d.text || "",
+          optionA: d.optionA || d.option_a || d.optA || d.a || "",
+          optionB: d.optionB || d.option_b || d.optB || d.b || "",
+          optionC: d.optionC || d.option_c || d.optC || d.c || "",
+          optionD: d.optionD || d.option_d || d.optD || d.d || "",
+          answer: (d.answer || d.ans || d.correct || "A").toString().trim().toUpperCase(),
+          solution: d.solution || d.explanation || d.details || d.sol || ""
+        };
+
+        grouped[key].count++;
+        grouped[key].docs.push(qObj);
+        grouped[key].docIds.push(doc.id);
+      });
+
+      allCloudTopics = Object.values(grouped).sort((a, b) => {
+        if (a.subject !== b.subject) return a.subject.localeCompare(b.subject);
+        return a.topic.localeCompare(b.topic, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      try {
+        localStorage.setItem('copypro_cloud_all_v4', JSON.stringify(allCloudTopics));
+      } catch(e) {}
+
+      updateDatabaseStats();
+      renderSubjectTabs(allCloudTopics);
+    } catch(err) {
+      console.warn("Cloud load notice:", err);
+      loadLocalCachedTopics();
+      if (err.message && (err.message.includes('Quota') || err.message.includes('RESOURCE_EXHAUSTED') || err.code === 'resource-exhausted')) {
+        showToast("Loaded Offline Test Library 💾", "📚");
+      }
+    } finally {
+      isFetchingCloud = false;
+    }
+  }
+
+  function renderSubjectTabs(topics) {
+    const container = document.getElementById('subject-tabs-container');
+    if (!container) return;
+
+    const subjectCounts = {};
+    topics.forEach(t => {
+      const s = (t.subject || "General").trim();
+      subjectCounts[s] = (subjectCounts[s] || 0) + 1;
+    });
+
+    const subjects = Object.keys(subjectCounts).sort();
+    let totalCount = topics.length;
+
+    let html = `
+      <button class="subject-tab-pill ${currentSubjectFilter === 'ALL' ? 'active' : ''}" onclick="filterBySubject('ALL')">
+        <span>📚 All Subjects</span>
+        <span class="subject-tab-count">${totalCount}</span>
+      </button>
+    `;
+
+    subjects.forEach(subj => {
+      const count = subjectCounts[subj];
+      const isActive = (currentSubjectFilter.toLowerCase() === subj.toLowerCase());
+      html += `
+        <button class="subject-tab-pill ${isActive ? 'active' : ''}" onclick="filterBySubject('${escapeAttr(subj)}')">
+          <span>🏷️ ${escapeHtml(subj)}</span>
+          <span class="subject-tab-count">${count}</span>
+        </button>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  function filterBySubject(subj) {
+    currentSubjectFilter = subj;
+    renderSubjectTabs(allCloudTopics);
+    renderCloudDashboard(allCloudTopics);
+  }
+
+  function onSearchCloudTests(query) {
+    currentSearchQuery = query.toLowerCase().trim();
+    renderCloudDashboard(allCloudTopics);
+  }
+
+  function renderCloudDashboard(topics) {
+    const grid = document.getElementById('topics-grid');
+    if (!grid) return;
+
+    let filtered = topics;
+    if (currentSubjectFilter !== "ALL") {
+      filtered = filtered.filter(t => (t.subject || "General").toLowerCase() === currentSubjectFilter.toLowerCase());
+    }
+
+    if (currentSearchQuery) {
+      filtered = filtered.filter(t => 
+        (t.topic && t.topic.toLowerCase().includes(currentSearchQuery)) ||
+        (t.subject && t.subject.toLowerCase().includes(currentSearchQuery)) ||
+        (t.test_code && t.test_code.toLowerCase().includes(currentSearchQuery))
+      );
+    }
+
+    if (!filtered.length) {
+      grid.innerHTML = '<p style="color:var(--text-muted); text-align:center; grid-column:1/-1; padding:30px;">No matching tests found in this category.</p>';
+      return;
+    }
+
+    const isAdmin = isAdminLoggedIn();
+
+    grid.innerHTML = filtered.map((t) => {
+      const globalIdx = allCloudTopics.indexOf(t);
+      return `
+        <div class="quiz-card">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+              <span class="quiz-subject-badge">${escapeHtml(t.subject)}</span>
+              <span style="font-size:12px; font-weight:700; color:var(--text-dim);">${escapeHtml(t.test_code)}</span>
+            </div>
+            <div style="font-family:var(--font-heading); font-size:16px; font-weight:700; margin-bottom:8px; color:#FFF;">${escapeHtml(t.topic)}</div>
+            <div style="display:flex; gap:12px; color:var(--text-muted); font-size:12px; margin-bottom:14px;">
+              <div>📝 <span>${t.count} Qs</span></div>
+              <div>⏱️ <span>${Math.max(5, Math.round(t.count * 1.5))} Mins</span></div>
+            </div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.05); padding-top:12px; gap:8px;">
+            ${isAdmin ? `
+              <button class="btn-ctrl" onclick="loadCloudTopicToTable(${globalIdx})" style="flex:1;">📥 Edit</button>
+              <button class="btn-success" onclick="startCloudTopicQuiz(${globalIdx})" style="flex:1;">Start 🚀</button>
+            ` : `
+              <button class="btn-success" onclick="startCloudTopicQuiz(${globalIdx})" style="width:100%; padding:9px 14px; font-size:13px;">Start Test 🚀</button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function launchByTestCode() {
+    const code = document.getElementById('input-test-code').value.trim().toUpperCase();
+    if (!code) return alert("Please enter a Test Code or Topic name!");
+    const match = allCloudTopics.find(t => t.test_code.toUpperCase() === code || t.topic.toUpperCase().includes(code));
+    if (match && match.docs && match.docs.length) {
+      startQuizWithData(match.docs, match.topic);
+    } else {
+      alert("Test Code / Topic '" + code + "' not found in cloud database.");
+    }
+  }
+
+  function openBulkModal() { openModal('bulk-modal'); }
+  async function pasteFromClipboard() {
+    try {
+      const text = await navigator.clipboard.readText();
+      document.getElementById('modal-bulk-input').value = text;
+    } catch(err) {
+      alert("Press Ctrl + V inside the box to paste!");
+    }
+  }
+
+  function processBulkImport() {
+    const raw = document.getElementById('modal-bulk-input').value.trim();
+    if (!raw) return alert("Please paste data first!");
+
+    const userDelim = document.getElementById('bulk-delimiter').value;
+    const skipHeader = document.getElementById('bulk-skip-header').checked;
+
+    const parsed = parseUniversalMCQ(raw, userDelim, skipHeader);
+    if (!parsed.length) {
+      alert("Could not parse data. Ensure data has columns: Question, A, B, C, D, Ans, Solution");
+      return;
+    }
+
+    tableQuestions = parsed;
+    renderTableRows();
+    closeModal('bulk-modal');
+    switchView('table');
+    showToast(`Imported ${parsed.length} questions!`, "✅");
+  }
+
+  function parseUniversalMCQ(rawText, userDelim, skipHeader) {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) return [];
+
+    let delimiter = userDelim;
+    if (delimiter === 'auto') {
+      const sample = lines[0];
+      if (sample.includes('\t')) delimiter = '\t';
+      else if (sample.includes('|')) delimiter = '|';
+      else if (sample.includes(';')) delimiter = ';';
+      else if (sample.includes(',') && sample.split(',').length >= 4) delimiter = ',';
+    }
+
+    const results = [];
+    if (delimiter && delimiter !== 'auto') {
+      let startIdx = 0;
+      const firstParts = lines[0].split(delimiter).map(p => p.trim().toLowerCase());
+      if (skipHeader || firstParts[0].includes('question') || firstParts[0].includes('q') || firstParts[1] === 'a') {
+        startIdx = 1;
+      }
+
+      for (let i = startIdx; i < lines.length; i++) {
+        const parts = lines[i].split(delimiter).map(p => p.trim());
+        if (parts.length >= 2) {
+          const qText = parts[0];
+          const optA = parts[1] || "";
+          const optB = parts[2] || "";
+          const optC = parts[3] || "";
+          const optD = parts[4] || "";
+          let ansRaw = (parts[5] || "A").toUpperCase();
+          let ans = "A";
+          if (ansRaw.includes('B') || ansRaw === '2') ans = "B";
+          else if (ansRaw.includes('C') || ansRaw === '3') ans = "C";
+          else if (ansRaw.includes('D') || ansRaw === '4') ans = "D";
+          else if (ansRaw.includes('A') || ansRaw === '1') ans = "A";
+
+          const sol = parts[6] || "";
+          results.push({ question: qText, optionA: optA, optionB: optB, optionC: optC, optionD: optD, answer: ans, solution: sol });
+        }
+      }
+      if (results.length > 0) return results;
+    }
+    return [];
+  }
+
+  // ==========================================================================
+  // CBT QUIZ PLAYER
+  // ==========================================================================
+  function startQuizWithData(questionsList, topicTitle) {
+    currentQuizData = questionsList;
+    currentIdx = 0;
+    userAnswers = {};
+    markedForReview.clear();
+    timerSeconds = Math.max(300, questionsList.length * 90);
+
+    document.getElementById('tab-player').style.display = 'inline-flex';
+    switchView('player');
+
+    buildPalette();
+    loadQuestion(0);
+    startTimer();
+    initEarbudsEngine();
+  }
+
+  function buildPalette() {
+    const grid = document.getElementById('palette-grid');
+    grid.innerHTML = currentQuizData.map((_, i) => `
+      <button class="palette-btn" id="pal-btn-${i}" onclick="loadQuestion(${i})">${i + 1}</button>
+    `).join('');
+    updatePalette();
+  }
+
+  function updatePalette() {
+    currentQuizData.forEach((_, i) => {
+      const btn = document.getElementById(`pal-btn-${i}`);
+      if (!btn) return;
+      btn.className = "palette-btn";
+      if (i === currentIdx) btn.classList.add("current");
+      if (i in userAnswers) btn.classList.add("answered");
+      if (markedForReview.has(i)) btn.classList.add("marked");
+    });
+    const solvedCount = Object.keys(userAnswers).length;
+    document.getElementById('lbl-palette-score').innerText = `${solvedCount} / ${currentQuizData.length} Solved`;
+  }
+
+  function loadQuestion(idx) {
+    if (idx < 0 || idx >= currentQuizData.length) return;
+    currentIdx = idx;
+    const q = currentQuizData[idx];
+
+    document.getElementById('lbl-q-counter').innerText = `Q ${idx + 1} / ${currentQuizData.length}`;
+    document.getElementById('lbl-q-text').innerText = formatDualText(q.question);
+
+    const letters = ['A', 'B', 'C', 'D'];
+    letters.forEach((l, i) => {
+      const btn = document.getElementById(`opt-btn-${i}`);
+      const textEl = document.getElementById(`opt-text-${i}`);
+      btn.className = "opt-btn";
+      btn.disabled = false;
+      textEl.innerText = formatDualText(q['option' + l] || '');
+    });
+
+    const solBox = document.getElementById('sol-box');
+    if (idx in userAnswers) {
+      const selected = userAnswers[idx];
+      const correctIdx = getCorrectIdx(q);
+      
+      letters.forEach((_, i) => {
+        const btn = document.getElementById(`opt-btn-${i}`);
+        btn.disabled = true;
+        if (i === correctIdx) btn.classList.add('selected-correct');
+        if (selected !== correctIdx && i === selected) btn.classList.add('selected-wrong');
+      });
+
+      document.getElementById('lbl-sol-text').innerText = q.solution || "No explanation provided.";
+      solBox.style.display = 'block';
+    } else {
+      solBox.style.display = 'none';
+      if (audioReadEnabled) speakCurrentQuestion();
+    }
+
+    updatePalette();
+    setupMediaSession();
+  }
+
+  function getCorrectIdx(q) {
+    const raw = (q.answer || 'A').toString().trim().toUpperCase();
+    const letters = ['A', 'B', 'C', 'D'];
+    for (let i = 0; i < 4; i++) {
+      if (raw.includes(letters[i]) || raw === (i + 1).toString()) return i;
+    }
+    return 0;
+  }
+
+  function selectOption(selectedIdx) {
+    if (currentIdx in userAnswers) return;
+    const q = currentQuizData[currentIdx];
+    const correctIdx = getCorrectIdx(q);
+
+    userAnswers[currentIdx] = selectedIdx;
+    const isCorrect = (selectedIdx === correctIdx);
+    playSound(isCorrect ? 'correct' : 'wrong');
+
+    const letters = ['A', 'B', 'C', 'D'];
+    letters.forEach((_, i) => {
+      const btn = document.getElementById(`opt-btn-${i}`);
+      btn.disabled = true;
+      if (i === correctIdx) btn.classList.add('selected-correct');
+      if (!isCorrect && i === selectedIdx) btn.classList.add('selected-wrong');
+    });
+
+    document.getElementById('lbl-sol-text').innerText = q.solution || "No explanation provided.";
+    document.getElementById('sol-box').style.display = 'block';
+
+    updatePalette();
+  }
+
+  function nextQuestion() {
+    if (currentIdx < currentQuizData.length - 1) loadQuestion(currentIdx + 1);
+    else submitQuizConfirm();
+  }
+
+  function prevQuestion() {
+    if (currentIdx > 0) loadQuestion(currentIdx - 1);
+  }
+
+  function toggleMarkReview() {
+    if (markedForReview.has(currentIdx)) markedForReview.delete(currentIdx);
+    else markedForReview.add(currentIdx);
+    updatePalette();
+  }
+
+  function clearResponse() {
+    delete userAnswers[currentIdx];
+    loadQuestion(currentIdx);
+  }
+
+  function toggleSolutionView() {
+    const box = document.getElementById('sol-box');
+    box.style.display = box.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        submitQuizResults();
+        return;
+      }
+      const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+      const s = (timerSeconds % 60).toString().padStart(2, '0');
+      document.getElementById('lbl-timer').innerText = `⏱️ ${m}:${s}`;
+    }, 1000);
+  }
+
+  function submitQuizConfirm() {
+    const solved = Object.keys(userAnswers).length;
+    const total = currentQuizData.length;
+    if (confirm(`Submit Test? You have answered ${solved} of ${total} questions.`)) {
+      submitQuizResults();
+    }
+  }
+
+  function submitQuizResults() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (recognition) { try { recognition.stop(); } catch(e){} }
+    stopStudioVoice();
+    if (earbudAudioEl) try { earbudAudioEl.pause(); } catch(e){}
+
+    let correctCount = 0;
+    currentQuizData.forEach((q, idx) => {
+      if (userAnswers[idx] === getCorrectIdx(q)) correctCount++;
+    });
+
+    const total = currentQuizData.length;
+    const percent = Math.round((correctCount / total) * 100);
+
+    document.getElementById('res-score').innerText = `${correctCount} / ${total}`;
+    document.getElementById('res-percent').innerText = `${percent}% Accuracy`;
+    document.getElementById('res-correct').innerText = correctCount;
+    document.getElementById('res-wrong').innerText = total - correctCount;
+    
+    const m = Math.floor((900 - timerSeconds) / 60);
+    const s = (900 - timerSeconds) % 60;
+    document.getElementById('res-time').innerText = `${m}m ${s}s`; else {
+      switchView('results');
+    }
+  }
+
+  function restartQuiz() {
+    startQuizWithData(currentQuizData, "Retake Practice Test");
+  }
+
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = () => { loadBrowserVoices(); };
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    renderTableRows();
+    loadLocalCachedTopics();
+    fetchCloudTopics(false);
+    updateAdminUIState(isAdminLoggedIn());
+    updateAudioInputDevices();
+  });
+  
+</script>
+</body>
+</html>

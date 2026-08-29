@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.wav
+backups/
+scratch/
+error.log
+error_log.txt
+glass_error.txt
+*.pyc
+*.pyo
+.DS_Store
+desktop.ini

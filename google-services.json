@@ -1,0 +1,30 @@
+
+{
+  "project_info": {
+    "project_number": "327539671354",
+    "project_id": "simple-q-b7ad7",
+    "storage_bucket": "simple-q-b7ad7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:327539671354:android:9afdbb9881d7d961f29003",
+        "android_client_info": {
+          "package_name": "com.example.simpleq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPwqgAMR4Muj41OI7UyxSAu3N8aA9tDVE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
