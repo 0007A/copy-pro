@@ -1381,6 +1381,38 @@
     border: none;
     border-radius: var(--radius-md);
   }
+  .yt-skip-overlay {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 70px;
+    height: 70px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(4px);
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10;
+  }
+  .yt-skip-overlay.active {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.15);
+  }
+  .yt-skip-overlay.left {
+    left: 15%;
+  }
+  .yt-skip-overlay.right {
+    right: 15%;
+  }
   .yt-video-meta {
     display: flex;
     flex-direction: column;
@@ -5234,6 +5266,69 @@
       }
     }
   }
+
+  // 📱 Double Tap to Skip 10s (YouTube Style) for Native Video Player
+  (function() {
+    let lastTap = 0;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const videoEl = document.getElementById('yt-cloud-video');
+      const wrapper = document.querySelector('.yt-video-wrapper');
+      if (!videoEl || !wrapper) return;
+
+      // Create Skip Feedback overlays if they don't exist
+      let leftOverlay = document.getElementById('yt-skip-left');
+      if (!leftOverlay) {
+        leftOverlay = document.createElement('div');
+        leftOverlay.id = 'yt-skip-left';
+        leftOverlay.className = 'yt-skip-overlay left';
+        leftOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">◀◀</div><div>10s</div>';
+        wrapper.appendChild(leftOverlay);
+      }
+
+      let rightOverlay = document.getElementById('yt-skip-right');
+      if (!rightOverlay) {
+        rightOverlay = document.createElement('div');
+        rightOverlay.id = 'yt-skip-right';
+        rightOverlay.className = 'yt-skip-overlay right';
+        rightOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">▶▶</div><div>10s</div>';
+        wrapper.appendChild(rightOverlay);
+      }
+
+      function showSkipFeedback(direction) {
+        const overlay = (direction === 'left') ? leftOverlay : rightOverlay;
+        overlay.classList.add('active');
+        setTimeout(() => {
+          overlay.classList.remove('active');
+        }, 500);
+      }
+
+      videoEl.addEventListener('click', function(e) {
+        const rect = videoEl.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const clickX = e.clientX - rect.left;
+        
+        // Skip Y calculation (if clicked in the controls area at the bottom 20%, ignore)
+        if (clickY > rect.height * 0.8) return;
+        
+        const now = Date.now();
+        const DOUBLE_PRESS_DELAY = 300;
+        if (now - lastTap < DOUBLE_PRESS_DELAY) {
+          e.preventDefault();
+          if (clickX < rect.width / 2) {
+            // Left Double Tap -> Rewind 10s
+            videoEl.currentTime = Math.max(0, videoEl.currentTime - 10);
+            showSkipFeedback('left');
+          } else {
+            // Right Double Tap -> Forward 10s
+            videoEl.currentTime = Math.min(videoEl.duration || 0, videoEl.currentTime + 10);
+            showSkipFeedback('right');
+          }
+        }
+        lastTap = now;
+      });
+    });
+  })();
 
   //]]></script>
 </body>

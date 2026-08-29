@@ -159,3 +159,18 @@ All original files are backed up before making any modifications:
      - Allows users to seamlessly authenticate natively on the target domain without iframe security blocks, enabling persistent playback cookies for cross-origin Dash/HLS streams.
   3. **Vercel Routing Configuration (`vercel.json`):**
      - Added `vercel.json` to enforce static clean URLs and route `/` requests straight to `index.html` to prevent any Python serverless build conflicts due to the presence of `main.py`.
+
+---
+
+## 📱 11. YOUTUBE-STYLE DOUBLE-TAP GESTURE CONTROLS (2026-08-29)
+
+* **Features Implemented:**
+  1. **Native Video Player Double-Tap to Skip:**
+     - Added a click event listener on the native HTML5 player (`#yt-cloud-video`) to register fast double clicks or double taps (within a 300ms delay window).
+     - Divided the horizontal width of the video element into left (0% to 50%) and right (50% to 100%) zones.
+     - Double tapping the left zone rewinds the video by 10 seconds. Double tapping the right zone skips forward by 10 seconds.
+     - Added boundary protection to ignore double taps occurring in the bottom 20% of the player area to prevent conflicts with native controls/seekbar drags.
+  2. **High-Fidelity Overlay Animations:**
+     - Embedded two dynamic ripple indicators (`#yt-skip-left` with `◀◀ 10s` and `#yt-skip-right` with `10s ▶▶`) styled with modern dark transparent backgrounds, blur filters, and scale animation triggers.
+  3. **Cross-Origin Security Note:**
+     - Because cross-origin `<iframe>` instances (such as when loading `pw.live` batch streams inside the app) are protected by browser Same-Origin Policies, JavaScript event capture and direct playback speed/time modifications on the iframe DOM are natively disabled. This custom double-tap gesture runs seamlessly on all native video player instances (direct MPD/M3U8 streams, custom uploads, YouTube embeds).
