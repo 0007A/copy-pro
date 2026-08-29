@@ -5183,35 +5183,56 @@
   }
 
   //]]>
-  // ==================== TESTBOOK HUB ENGINE ====================
+  
+
+  // ==================== TESTBOOK HUB ENGINE (DIRECT API - NO LOCAL SERVER) ====================
   let tbCurrentExam = null;
   let tbCurrentSection = null;
-  const TB_API_BASE = 'http://localhost:5000/api';
+  let tbSectionsCache = {};
+
+  const TB_TOKEN = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3Rlc3Rib29rLmNvbSIsInN1YiI6IjY4N2I3ZWQ5NzE0MDE2NmI5ZTY3NWNiYyIsImF1ZCI6IlRCIiwiZXhwIjoiMjAyNi0wOS0yNFQxNDo1Mjo1Ni4zODY5NzkyNzZaIiwiaWF0IjoiMjAyNi0wOC0yNVQxNDo1Mjo1Ni4zODY5NzkyNzZaIiwib3JnSWQiOiIiLCJob21lU3RhdGVJZCI6IjVmOTE2M2E0MmVjODI3YjIxOGRhY2QzNyIsImlzUGFpZFVzZXIiOnRydWUsImlzTE1TVXNlciI6ZmFsc2UsInJvbGVzIjoic3R1ZGVudCJ9.gl3wSz8AT-yKVwtDEz_2DmcB4IWj-QLpcQImRkDVFW5PtI5yd87F3ddV6trIXAdAYHDod2KBR8G0r8bw-zER7o4qYbqDDoVM0RP-Ps2_OtfljiMmPqhQnjgbZCwQkmrSduRKRH5XBrKFKNDWg0Ik3gsHwBaopnk-fQm4XHitrNo';
+  const TB_HEADERS = {
+    'Accept': 'application/json, text/plain, */*',
+    'Authorization': 'Bearer ' + TB_TOKEN,
+    'tb_token': TB_TOKEN
+  };
+
+  const TB_EXAMS = [
+    { id: '695775734ccf9df45af31a20', shortTitle: 'Current Affairs 2026', icon: '\u26A1', badge: '493 Tests' },
+    { id: '6960d60ab4975a8fe9557df7', shortTitle: 'SSC CGL 2026', icon: '\uD83C\uDFC6', badge: '2,345 Tests' },
+    { id: '6971ffb9247a3fbd0651f152', shortTitle: 'SSC CHSL 2026', icon: '\uD83C\uDFAF', badge: '2,497 Tests' },
+    { id: '68e4f124a4d902ea5ca9c860', shortTitle: 'RRB NTPC', icon: '\uD83D\uDE86', badge: '1,913 Tests' },
+    { id: '694bf4025a4f5359d3d1971b', shortTitle: 'RRB Group D', icon: '\uD83D\uDEE0', badge: '2,092 Tests' }
+  ];
+
+  async function tbFetch(url) {
+    try {
+      const res = await fetch(url, { headers: TB_HEADERS });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch(e) {
+      console.error('TB Fetch Error:', url, e);
+      return null;
+    }
+  }
 
   async function initTestbookHub() {
     const list = document.getElementById('tb-categories-list');
-    if(list.children.length > 0) return; // already loaded
+    if(list.children.length > 0) return;
     
-    try {
-      document.getElementById('tb-conn-status').innerHTML = '🟡 Connecting...';
-      const res = await fetch(`${TB_API_BASE}/categories`);
-      const cats = await res.json();
-      
-      list.innerHTML = '';
-      cats.forEach((c, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `tb-cat-btn ${idx===0 ? 'active' : ''}`;
-        btn.innerHTML = `<span>${c.icon}</span> ${c.shortTitle}`;
-        btn.onclick = () => selectTbCategory(c, btn);
-        list.appendChild(btn);
-      });
-      document.getElementById('tb-conn-status').innerHTML = '🟢 Connected';
-      if(cats.length > 0) selectTbCategory(cats[0], list.children[0]);
-    } catch(e) {
-      console.error(e);
-      document.getElementById('tb-conn-status').innerHTML = '🔴 Server Offline';
-      document.getElementById('tb-categories-list').innerHTML = `<span style="color:#ef4444; font-size:13px;">Cannot connect to local Testbook server (localhost:5000). Make sure it is running!</span>`;
-    }
+    document.getElementById('tb-conn-status').innerHTML = '\uD83D\uDFE1 Loading Exams...';
+    list.innerHTML = '';
+    
+    TB_EXAMS.forEach((c, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tb-cat-btn' + (idx===0 ? ' active' : '');
+      btn.innerHTML = '<span>' + c.icon + '</span> ' + c.shortTitle;
+      btn.onclick = () => selectTbCategory(c, btn);
+      list.appendChild(btn);
+    });
+    
+    document.getElementById('tb-conn-status').innerHTML = '\uD83D\uDFE2 Ready';
+    if(TB_EXAMS.length > 0) selectTbCategory(TB_EXAMS[0], list.children[0]);
   }
 
   async function selectTbCategory(cat, targetBtn) {
@@ -5220,54 +5241,112 @@
     targetBtn.classList.add('active');
     
     const tabs = document.getElementById('tb-section-tabs');
-    tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#64748b;">Loading sections...</span>';
+    tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#64748b;">Loading sections from Testbook API...</span>';
     
-    try {
-      const res = await fetch(`${TB_API_BASE}/sections?examId=${cat.id}`);
-      const sections = await res.json();
-      tabs.innerHTML = '';
-      
-      sections.forEach((sec, idx) => {
-        const btn = document.createElement('button');
-        btn.className = `tb-section-tab ${idx===0 ? 'active' : ''}`;
-        btn.innerHTML = sec.tabTitle;
-        btn.onclick = () => selectTbSection(sec, btn);
-        tabs.appendChild(btn);
-      });
-      if(sections.length > 0) selectTbSection(sections[0], tabs.children[0]);
-    } catch(e) {}
+    // Fetch sections directly from Testbook API
+    if(tbSectionsCache[cat.id]) {
+      renderTbSections(tbSectionsCache[cat.id]);
+      return;
+    }
+    
+    const data = await tbFetch('https://api.testbook.com/api/v2/test-series/' + cat.id);
+    if(!data) {
+      tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#ef4444;">Failed to load sections. Token expired?</span>';
+      return;
+    }
+    
+    const details = (data.data || {}).details || data.data || {};
+    const rawSections = details.sections || data.data?.sections || [];
+    
+    const sections = rawSections.map(sec => {
+      const count = (sec.paidTestCount || 0) + (sec.freeTestCount || 0);
+      const displayName = sec.shortName || sec.name;
+      return {
+        id: sec.id || sec._id,
+        name: sec.name,
+        tabTitle: displayName + '(' + count + ')',
+        shortName: displayName,
+        totalCount: count,
+        subsections: (sec.subsections || []).map(sub => ({
+          id: sub.id || sub._id,
+          name: sub.name,
+          count: (sub.paidTestCount || 0) + (sub.freeTestCount || 0)
+        }))
+      };
+    });
+    
+    tbSectionsCache[cat.id] = sections;
+    renderTbSections(sections);
+  }
+
+  function renderTbSections(sections) {
+    const tabs = document.getElementById('tb-section-tabs');
+    tabs.innerHTML = '';
+    
+    if(sections.length === 0) {
+      tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#ef4444;">No sections found</span>';
+      return;
+    }
+    
+    sections.forEach((sec, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'tb-section-tab' + (idx===0 ? ' active' : '');
+      btn.innerHTML = sec.tabTitle;
+      btn.onclick = () => selectTbSection(sec, btn);
+      tabs.appendChild(btn);
+    });
+    
+    selectTbSection(sections[0], tabs.children[0]);
   }
 
   async function selectTbSection(sec, targetBtn) {
     tbCurrentSection = sec;
     document.querySelectorAll('.tb-section-tab').forEach(b => b.classList.remove('active'));
-    targetBtn.classList.add('active');
-    targetBtn.scrollIntoView({behavior:'smooth', inline:'center'});
+    if(targetBtn) {
+      targetBtn.classList.add('active');
+      targetBtn.scrollIntoView({behavior:'smooth', inline:'center'});
+    }
     
     const container = document.getElementById('tb-cards-container');
-    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Loading tests...</div>';
+    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:20px;">Searching tests on Testbook...</div>';
     
-    try {
-      const res = await fetch(`${TB_API_BASE}/tests?seriesId=${tbCurrentExam.id}&examShort=${encodeURIComponent(tbCurrentExam.shortTitle)}&sectionName=${encodeURIComponent(sec.name)}&page=1&limit=100`);
-      const tests = await res.json();
-      container.innerHTML = '';
+    // Search tests directly from Testbook Search API
+    const searchTerm = encodeURIComponent(sec.shortName || sec.name);
+    const searchUrl = 'https://api.testbook.com/api/v1/search/individual?searchObj=tests&term=' + searchTerm + '&skip=0&limit=25';
+    
+    const result = await tbFetch(searchUrl);
+    container.innerHTML = '';
+    
+    if(!result || !result.data || !result.data.tests || result.data.tests.length === 0) {
+      container.innerHTML = '<div style="color:#f59e0b; font-size:13px; padding:20px;">No tests found for this section. Try another tab.</div>';
+      return;
+    }
+    
+    const tests = result.data.tests;
+    tests.forEach(t => {
+      const card = document.createElement('div');
+      card.className = 'tb-card';
+      const qCount = t.questionCount || t.totalQuestions || '?';
+      const marks = t.totalMark || t.totalMarks || qCount;
+      const title = t.title || 'Untitled Test';
+      const testId = t._id || t.id;
       
-      tests.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'tb-card';
-        card.innerHTML = `
-          <h4 class="tb-card-title">${t.title}</h4>
-          <div class="tb-card-meta">
-            <span>❓ ${t.questionCount} Qs</span>
-            <span>⭐ ${t.totalMark} Marks</span>
-          </div>
-          <button class="tb-card-btn" onclick="parseTestbookData('${t.id}', '${t.title.replace(/'/g, "\'")}')">
-            ⬇️ Load into Editor
-          </button>
-        `;
-        container.appendChild(card);
+      card.innerHTML = 
+        '<h4 class="tb-card-title">' + title + '</h4>' +
+        '<div class="tb-card-meta">' +
+          '<span>\u2753 ' + qCount + ' Qs</span>' +
+          '<span>\u2B50 ' + marks + ' Marks</span>' +
+        '</div>' +
+        '<button class="tb-card-btn" data-tid="' + testId + '" data-ttitle="' + title.replace(/"/g, '&quot;') + '">' +
+          '\u2B07\uFE0F Load into Editor' +
+        '</button>';
+      
+      card.querySelector('.tb-card-btn').addEventListener('click', function() {
+        parseTestbookData(this.getAttribute('data-tid'), this.getAttribute('data-ttitle'));
       });
-    } catch(e) {}
+      
+      container.appendChild(card);
+    });
   }
 
   function scrollTbTabs(offset) {
@@ -5276,75 +5355,107 @@
 
   function stripTbHtml(htmlStr) {
     if(!htmlStr) return '';
-    let text = htmlStr.replace(/<[^>]*>?/gm, ' ').trim();
-    text = text.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    let text = String(htmlStr).replace(/<[^>]*>?/gm, ' ').trim();
+    text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&rsquo;/g, "'").replace(/&lsquo;/g, "'").replace(/&rdquo;/g, '"').replace(/&ldquo;/g, '"');
+    text = text.replace(/\s+/g, ' ').trim();
     return text;
   }
 
   async function parseTestbookData(testId, testTitle) {
-    showAppToast('Fetching test data from server...', 'success');
+    showAppToast('Fetching test from Testbook API...', 'success');
     
-    try {
-      const res = await fetch(`${TB_API_BASE}/view-test?testId=${testId}`);
-      if(!res.ok) throw new Error("Failed to fetch test data");
-      
-      const data = await res.json();
-      const questions = data.questions;
-      
-      if(!questions || questions.length === 0) {
-        showAppToast('Test is empty!', 'error');
-        return;
-      }
-
-      // Convert to Copy Pro Format
-      const tableBody = document.getElementById('editor-table').querySelector('tbody');
-      tableBody.innerHTML = ''; // Clear existing
-      
-      questions.forEach((q, index) => {
-        const qText = stripTbHtml(q.title || "Question text missing");
-        const expText = stripTbHtml(q.solution || "No explanation provided");
-        
-        let opts = ["", "", "", ""];
-        if(q.options && q.options.length >= 4) {
-          opts[0] = stripTbHtml(q.options[0]);
-          opts[1] = stripTbHtml(q.options[1]);
-          opts[2] = stripTbHtml(q.options[2]);
-          opts[3] = stripTbHtml(q.options[3]);
-        }
-        
-        // Convert Answer Index (1-based to letter A,B,C,D or direct value)
-        // Testbook uses co: 1, 2, 3, 4 usually. Or sometimes 0-based.
-        let ansIndex = q.co;
-        if(typeof ansIndex === 'string') ansIndex = parseInt(ansIndex);
-        let ansText = opts[ansIndex - 1] || opts[ansIndex] || ""; // Safe fallback
-        
-        const rowHTML = `
-          <tr data-status="new">
-            <td style="text-align:center; color:var(--text-muted);">${index + 1}</td>
-            <td contenteditable="true" data-field="subject">${tbCurrentExam.shortTitle}</td>
-            <td contenteditable="true" data-field="topic">${tbCurrentSection.tabTitle}</td>
-            <td contenteditable="true" data-field="q">${qText}</td>
-            <td contenteditable="true" data-field="optA">${opts[0]}</td>
-            <td contenteditable="true" data-field="optB">${opts[1]}</td>
-            <td contenteditable="true" data-field="optC">${opts[2]}</td>
-            <td contenteditable="true" data-field="optD">${opts[3]}</td>
-            <td contenteditable="true" data-field="ans">${ansText}</td>
-            <td contenteditable="true" data-field="exp">${expText}</td>
-            <td style="text-align:center;">
-              <button onclick="this.closest('tr').remove()" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">❌</button>
-            </td>
-          </tr>
-        `;
-        tableBody.insertAdjacentHTML('beforeend', rowHTML);
-      });
-      
-      showAppToast(`Loaded ${questions.length} questions successfully!`, 'success');
-      switchView('table'); // Switch to editor view instantly!
-      
-    } catch(err) {
-      console.error(err);
-      showAppToast('Error parsing Testbook data', 'error');
+    // Step 1: Fetch test paper directly from Testbook
+    const testUrl = 'https://api.testbook.com/api/v1/tests/' + testId;
+    const testResult = await tbFetch(testUrl);
+    
+    if(!testResult || !testResult.data) {
+      showAppToast('Failed to fetch test data!', 'error');
+      return;
     }
+    
+    const testData = testResult.data;
+    const allQuestions = [];
+    const sections = testData.sections || [];
+    
+    sections.forEach(sec => {
+      (sec.questions || []).forEach(q => {
+        allQuestions.push(q);
+      });
+    });
+    
+    if(allQuestions.length === 0) {
+      showAppToast('Test has no questions!', 'error');
+      return;
+    }
+    
+    showAppToast('Processing ' + allQuestions.length + ' questions...', 'success');
+    
+    // Step 2: Parse each question and fetch solution
+    const tableBody = document.getElementById('editor-table').querySelector('tbody');
+    tableBody.innerHTML = '';
+    
+    for(let idx = 0; idx < allQuestions.length; idx++) {
+      const q = allQuestions[idx];
+      const qId = q._id || q.id;
+      
+      // Get English question and options
+      const en = q.en || {};
+      const qText = stripTbHtml(en.value || '');
+      const enOpts = en.options || [];
+      const opts = [
+        stripTbHtml(enOpts[0] ? enOpts[0].value : ''),
+        stripTbHtml(enOpts[1] ? enOpts[1].value : ''),
+        stripTbHtml(enOpts[2] ? enOpts[2].value : ''),
+        stripTbHtml(enOpts[3] ? enOpts[3].value : '')
+      ];
+      
+      // Fetch solution from Testbook Question API
+      let correctAns = '';
+      let solutionText = '';
+      
+      try {
+        const solResult = await tbFetch('https://api.testbook.com/api/v1/questions/' + qId);
+        if(solResult && solResult.data) {
+          const solData = solResult.data;
+          const coIndex = solData.en?.co || solData.hn?.co;
+          
+          // Map correct option index to text
+          if(coIndex !== undefined && coIndex !== null) {
+            const ci = parseInt(coIndex);
+            if(ci >= 0 && ci < opts.length) correctAns = opts[ci];
+            else if(ci >= 1 && ci <= 4) correctAns = opts[ci - 1];
+          }
+          
+          // Get solution text
+          const sols = solData.en?.sol || [];
+          if(sols.length > 0) solutionText = stripTbHtml(sols[0].value || '');
+        }
+      } catch(e) {}
+      
+      const subj = tbCurrentExam ? tbCurrentExam.shortTitle : 'General';
+      const topic = tbCurrentSection ? tbCurrentSection.shortName : 'General';
+      
+      const rowHTML = 
+        '<tr data-status="new">' +
+          '<td style="text-align:center; color:var(--text-muted);">' + (idx + 1) + '</td>' +
+          '<td contenteditable="true" data-field="subject">' + subj + '</td>' +
+          '<td contenteditable="true" data-field="topic">' + topic + '</td>' +
+          '<td contenteditable="true" data-field="q">' + qText + '</td>' +
+          '<td contenteditable="true" data-field="optA">' + opts[0] + '</td>' +
+          '<td contenteditable="true" data-field="optB">' + opts[1] + '</td>' +
+          '<td contenteditable="true" data-field="optC">' + opts[2] + '</td>' +
+          '<td contenteditable="true" data-field="optD">' + opts[3] + '</td>' +
+          '<td contenteditable="true" data-field="ans">' + correctAns + '</td>' +
+          '<td contenteditable="true" data-field="exp">' + solutionText + '</td>' +
+          '<td style="text-align:center;">' +
+            '<button onclick="this.closest(\'tr\').remove()" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">\u274C</button>' +
+          '</td>' +
+        '</tr>';
+      tableBody.insertAdjacentHTML('beforeend', rowHTML);
+    }
+    
+    showAppToast('Loaded ' + allQuestions.length + ' questions into editor!', 'success');
+    switchView('table');
   }
 
 </script>
