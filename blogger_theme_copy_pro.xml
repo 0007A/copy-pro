@@ -1732,6 +1732,201 @@
     box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
     pointer-events: none;
   }
+  /* ==================== VIDEO HUB MOBILE RESPONSIVE CSS ==================== */
+
+  /* Hub container header */
+  .pw-video-hub-body {
+    margin-top: 20px;
+  }
+  .pw-video-hub-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pw-video-hub-heading {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+  .pw-total-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* Tablet: 768px and below */
+  @media (max-width: 768px) {
+    #view-videos {
+      gap: 12px;
+    }
+
+    /* Subject Tabs: wrap nicely, smaller pills */
+    .pw-subject-tabs {
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pw-subj-tab {
+      padding: 7px 14px;
+      font-size: 12px;
+      gap: 5px;
+    }
+
+    /* Chapter header section: tighten spacing */
+    .pw-chapter-header {
+      padding: 12px 14px;
+    }
+    .pw-chapter-title {
+      font-size: 13px;
+    }
+    .pw-chapter-badge {
+      display: none; /* hide lecture count badge on small screens to save space */
+    }
+
+    /* Lecture grid: 2 columns on tablet */
+    .pw-lecture-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .pw-chapter-body {
+      padding: 10px 12px 14px 12px;
+    }
+
+    /* Lecture cards: slightly tighter */
+    .pw-lecture-item {
+      padding: 9px 10px;
+      gap: 6px;
+    }
+    .pw-lec-title {
+      font-size: 12px;
+    }
+    .pw-lec-footer {
+      font-size: 10.5px;
+    }
+
+    /* Section heading: compress */
+    .pw-chapters-container {
+      gap: 10px;
+    }
+  }
+
+  /* Mobile: 480px and below */
+  @media (max-width: 480px) {
+    #view-videos {
+      gap: 8px;
+      padding: 0 2px;
+    }
+
+    /* Subject tabs: scroll horizontally, compact pills */
+    .pw-subject-tabs {
+      gap: 6px;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+      scrollbar-width: none; /* hide scrollbar on mobile */
+    }
+    .pw-subject-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    .pw-subj-tab {
+      padding: 6px 12px;
+      font-size: 11.5px;
+      border-radius: 20px;
+    }
+
+    /* Chapter header: full width, touch-friendly tap target */
+    .pw-chapter-header {
+      padding: 13px 12px;
+      min-height: 48px; /* touch-friendly target size */
+    }
+    .pw-chapter-title-box {
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .pw-chapter-title {
+      font-size: 12.5px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .pw-chapter-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .pw-chapter-meta {
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .pw-chapter-badge {
+      display: none; /* hide on mobile */
+    }
+    .pw-chevron {
+      font-size: 11px;
+    }
+
+    /* Lecture grid: single column on mobile for readability */
+    .pw-lecture-grid {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .pw-chapter-body {
+      padding: 8px 10px 12px 10px;
+    }
+
+    /* Lecture cards: row layout for better use of mobile width */
+    .pw-lecture-item {
+      padding: 10px 12px;
+      gap: 4px;
+      border-radius: 10px;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .pw-lec-title {
+      font-size: 12px;
+      flex: 1;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+    .pw-lec-footer {
+      font-size: 10px;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+      min-width: 48px;
+    }
+
+    /* Remove hover lift on mobile (touch devices don't hover) */
+    .pw-lecture-item:hover {
+      transform: none;
+    }
+
+    /* Active tap effect instead */
+    .pw-lecture-item:active {
+      background: rgba(99, 102, 241, 0.2);
+      transform: scale(0.98);
+    }
+
+    .pw-chapters-container {
+      gap: 8px;
+    }
+
+    /* Chapter count text compact */
+    #pw-total-chapters-count {
+      font-size: 11px;
+    }
+  }
 /*]]>*/</style>
 
   <!-- MPEG-DASH & HLS Streaming Engine for PW Cloud Videos -->
@@ -1890,13 +2085,13 @@
       <div class="pw-subject-tabs" id="pw-subject-tabs-bar"></div>
 
       <!-- Chapter Accordion Browser (PW Batch Style) -->
-      <div style="margin-top: 20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); display:flex; align-items:center; gap:8px;">
-            <span>📂 All Chapters in this Subject:</span>
-            <span id="pw-cur-subject-name" style="color:var(--primary); font-size:14px;"></span>
+      <div class="pw-video-hub-body">
+        <div class="pw-video-hub-header">
+          <h3 class="pw-video-hub-heading">
+            <span>📂 All Chapters:</span>
+            <span id="pw-cur-subject-name" style="color:var(--primary);"></span>
           </h3>
-          <span id="pw-total-chapters-count" style="font-size:12px; color:var(--text-muted);"></span>
+          <span id="pw-total-chapters-count" class="pw-total-count"></span>
         </div>
 
         <div class="pw-chapters-container" id="pw-chapters-accordion"></div>
