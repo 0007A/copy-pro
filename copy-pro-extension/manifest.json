@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Copy Pro - PW Player Gesture Controller",
+  "version": "1.0",
+  "description": "Adds YouTube-style double click/tap to skip 10s (left/right) on Physics Wallah video player.",
+  "permissions": [],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.pw.live/*",
+        "https://*.penpencil.co/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
