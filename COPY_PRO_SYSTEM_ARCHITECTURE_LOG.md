@@ -157,3 +157,5 @@ All original files are backed up before making any modifications:
   2. **Secure Cross-Origin Video Login Flow:**
      - Modified video details button to automatically change label to `🔑 PW Login / Open in New Tab` and dynamically route to the actual PW watch endpoint.
      - Allows users to seamlessly authenticate natively on the target domain without iframe security blocks, enabling persistent playback cookies for cross-origin Dash/HLS streams.
+  3. **Vercel Routing Configuration (`vercel.json`):**
+     - Added `vercel.json` to enforce static clean URLs and route `/` requests straight to `index.html` to prevent any Python serverless build conflicts due to the presence of `main.py`.
