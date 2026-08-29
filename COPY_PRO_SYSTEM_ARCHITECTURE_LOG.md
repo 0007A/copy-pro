@@ -174,3 +174,17 @@ All original files are backed up before making any modifications:
      - Embedded two dynamic ripple indicators (`#yt-skip-left` with `◀◀ 10s` and `#yt-skip-right` with `10s ▶▶`) styled with modern dark transparent backgrounds, blur filters, and scale animation triggers.
   3. **Cross-Origin Security Note:**
      - Because cross-origin `<iframe>` instances (such as when loading `pw.live` batch streams inside the app) are protected by browser Same-Origin Policies, JavaScript event capture and direct playback speed/time modifications on the iframe DOM are natively disabled. This custom double-tap gesture runs seamlessly on all native video player instances (direct MPD/M3U8 streams, custom uploads, YouTube embeds).
+
+---
+
+## 🚀 12. FULL DECOMMISSION OF EMBEDDED PLAYER & DIRECT BATCH NAVIGATOR PIVOT (2026-08-29)
+
+* **Issues Resolved & Features Implemented:**
+  1. **Decommissioned Redundant Video Player UI:**
+     - Removed the placeholder video player box (`yt-watch-theater`, `#yt-watch-section`), custom speed controls, seekbars, link input panels, and obsolete double-tap overlays entirely.
+     - Saves screen real estate, resolving empty placeholder blocks and keeping the view dedicated to navigation.
+  2. **1-Click Direct Launch Grid (Option A):**
+     - Updated the Chapter Accordion Browser (`#pw-chapters-accordion`) to display a full-width clean grid of lectures.
+     - Intercepted click events on lecture items: clicking any lecture now instantly triggers `window.open(lec.pwUrl, '_blank')` to launch the class directly in a new browser tab on Physics Wallah.
+     - Adds a dynamic `Launch 🚀` tag on all cards to guide user navigation.
+     - Direct new tab routing ensures standard authentication cookies work cleanly without cross-origin iframe security blocks.

@@ -1889,56 +1889,6 @@
       <!-- Top Subject Tabs (Batch Style) -->
       <div class="pw-subject-tabs" id="pw-subject-tabs-bar"></div>
 
-      <!-- Theater Watch Area (Video Player + Sidebar Playlist) -->
-      
-        <div class="yt-watch-theater" id="yt-watch-section">
-        <!-- Left: Main Video Launch Card -->
-        <div class="yt-main-player-col">
-          <div class="yt-launch-panel" id="yt-player-box">
-            <div class="yt-launch-card">
-              <div class="yt-launch-icon">🚀</div>
-              <h3 id="yt-overlay-title" style="margin: 0; font-size: 20px; font-weight: 800; color: #fff;">Select a Lecture to Start Learning</h3>
-              <p style="font-size: 13px; color: var(--text-dim); margin: 8px 0 20px 0; text-align: center; max-width: 440px;">
-                Physics Wallah video player is secured. Click the button below to open this lecture directly on PW in a new tab.
-              </p>
-              <a id="yt-btn-pw-launch" href="#" target="_blank" class="yt-large-launch-btn">
-                <span>🚀 Open Lecture on PW (New Tab)</span>
-              </a>
-            </div>
-          </div>
-
-          <div class="yt-video-meta">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-              <div>
-                <span class="quiz-subject-badge" id="yt-active-subject" style="margin-bottom:6px; display:inline-block;">Mathematics</span>
-                <h2 class="yt-video-title" id="yt-active-title">Select a Lecture to Start Learning</h2>
-              </div>
-            </div>
-            
-            <div class="yt-video-channel-row">
-              <div class="yt-channel-info">
-                <div class="yt-channel-avatar">PW</div>
-                <div>
-                  <div class="yt-channel-name" id="yt-active-faculty">Physics Wallah • Expert Faculty</div>
-                  <div class="yt-batch-badge" id="yt-active-batch">Safar 4.0 SSC CGL | CHSL 2026 Complete Batch</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Chapter Lectures Sidebar Playlist -->
-        <div class="yt-sidebar-playlist">
-          <div class="yt-playlist-header">
-            <div>
-              <h3 id="yt-playlist-title">Chapter Lectures</h3>
-              <span style="font-size:11.5px; color:var(--text-muted);" id="yt-playlist-count">Select a chapter</span>
-            </div>
-          </div>
-          <div class="yt-playlist-items" id="yt-playlist-cards"></div>
-        </div>
-      </div>
-
       <!-- Chapter Accordion Browser (PW Batch Style) -->
       <div style="margin-top: 20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
@@ -4979,13 +4929,6 @@
     if (countEl) countEl.textContent = subj.chapters.length + ' Chapters Total';
 
     renderPWChaptersAccordion(subj);
-
-    if (subj.chapters.length > 0 && subj.chapters[0].lectures.length > 0) {
-      renderPWPlaylist(subj.chapters[0].lectures, subj.chapters[0].chapterName);
-      if (!curActiveLecture) {
-        playPWLecture(subj.chapters[0].lectures[0]);
-      }
-    }
   }
 
   function renderPWChaptersAccordion(subj) {
@@ -5002,7 +4945,6 @@
       header.innerHTML = '<div class="pw-chapter-title-box"><span class="pw-chapter-icon">📂</span><span class="pw-chapter-title">' + chap.chapterName + '</span></div><div class="pw-chapter-meta"><span class="pw-chapter-badge">' + chap.lectures.length + ' Lectures</span><span class="pw-chevron">▼</span></div>';
       header.onclick = function() {
         card.classList.toggle('open');
-        renderPWPlaylist(chap.lectures, chap.chapterName);
       };
 
       var body = document.createElement('div');
@@ -5012,11 +4954,11 @@
 
       chap.lectures.forEach(function(lec) {
         var item = document.createElement('div');
-        item.className = 'pw-lecture-item' + (curActiveLecture && curActiveLecture.id === lec.id ? ' active' : '');
-        item.innerHTML = '<div class="pw-lec-title">▶ ' + lec.title + '</div><div class="pw-lec-footer"><span>⏱️ ' + lec.duration + '</span><span style="color:#A5B4FC; font-weight:600;">Play &gt;</span></div>';
+        item.className = 'pw-lecture-item';
+        item.innerHTML = '<div class="pw-lec-title">▶ ' + lec.title + '</div><div class="pw-lec-footer"><span>⏱️ ' + lec.duration + '</span><span style="color:#A5B4FC; font-weight:600; display:flex; align-items:center; gap:4px;">Launch 🚀</span></div>';
         item.onclick = function(e) {
           e.stopPropagation();
-          playPWLecture(lec);
+          window.open(lec.pwUrl, '_blank');
         };
         grid.appendChild(item);
       });
@@ -5026,143 +4968,6 @@
       card.appendChild(body);
       container.appendChild(card);
     });
-  }
-
-  function renderPWPlaylist(lectures, chapterName) {
-    var container = document.getElementById('yt-playlist-cards');
-    if (!container) return;
-    container.innerHTML = '';
-
-    var titleEl = document.getElementById('yt-playlist-title');
-    if (titleEl) titleEl.textContent = chapterName || 'Chapter Lectures';
-
-    var countEl = document.getElementById('yt-playlist-count');
-    if (countEl) countEl.textContent = (lectures ? lectures.length : 0) + ' Lectures Available';
-
-    if (!lectures || lectures.length === 0) {
-      container.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:10px;">No lectures in this chapter yet.</div>';
-      return;
-    }
-
-    lectures.forEach(function(v) {
-      var card = document.createElement('div');
-      card.className = 'yt-playlist-card' + (curActiveLecture && curActiveLecture.id === v.id ? ' active' : '');
-      card.onclick = function() { playPWLecture(v); };
-      card.innerHTML = '<div class="yt-thumb-box"><img src="' + v.thumbnail + '" alt="Thumbnail" /><span class="yt-duration-pill">' + v.duration + '</span></div><div class="yt-card-info"><div class="yt-card-title">' + v.title + '</div><div class="yt-card-sub">' + v.faculty + '</div></div>';
-      container.appendChild(card);
-    });
-  }
-
-  
-  function playCustomPWSpeficicURL() {
-    var input = document.getElementById('custom-video-url-input');
-    if (!input || !input.value.trim()) {
-      if (typeof showToast === 'function') showToast('Please enter a video URL first!', 'error');
-      return;
-    }
-    var url = input.value.trim();
-    loadSpecificVideoURL(url, "Custom Lecture Stream");
-  }
-
-  function loadSpecificVideoURL(url, title) {
-    var videoEl = document.getElementById('yt-cloud-video');
-    var iframeEl = document.getElementById('yt-iframe-player');
-    var overlay = document.getElementById('yt-stream-overlay');
-    var titleEl = document.getElementById('yt-active-title');
-    var directBtn = document.getElementById('yt-btn-pw-direct');
-
-    if (titleEl) titleEl.textContent = title || "Live PW Video Stream";
-    if (overlay) overlay.style.display = 'none';
-    if (directBtn) {
-      directBtn.href = url;
-      directBtn.onclick = null;
-      directBtn.target = "_blank";
-      directBtn.innerHTML = '<span>🚀 Open in PW Web</span>';
-    }
-
-    if (!videoEl || !iframeEl) return;
-
-    if (url.indexOf('youtube.com') !== -1 || url.indexOf('youtu.be') !== -1) {
-      videoEl.style.display = 'none';
-      iframeEl.style.display = 'block';
-      var yId = '';
-      if (url.indexOf('v=') !== -1) yId = url.split('v=')[1].split('&')[0];
-      else if (url.indexOf('youtu.be/') !== -1) yId = url.split('youtu.be/')[1].split('?')[0];
-      iframeEl.src = 'https://www.youtube.com/embed/' + yId + '?autoplay=1';
-    } else if (url.indexOf('pw.live/watch') !== -1 || url.indexOf('pw.live/study') !== -1) {
-      videoEl.style.display = 'none';
-      iframeEl.style.display = 'block';
-      iframeEl.src = url;
-    } else if (url.indexOf('.mpd') !== -1 || url.indexOf('.m3u8') !== -1) {
-      iframeEl.style.display = 'none';
-      videoEl.style.display = 'block';
-      if (window.dashjs && url.indexOf('.mpd') !== -1) {
-        if (pwDashPlayer) pwDashPlayer.reset();
-        pwDashPlayer = dashjs.MediaPlayer().create();
-        pwDashPlayer.initialize(videoEl, url, true);
-      } else {
-        videoEl.src = url;
-        videoEl.play().catch(function(e){ console.log(e); });
-      }
-    } else {
-      videoEl.style.display = 'none';
-      iframeEl.style.display = 'block';
-      iframeEl.src = url;
-    }
-
-    if (typeof showToast === 'function') {
-      showToast('▶ Playing: ' + (title || 'Lecture'), 'success');
-    }
-  }
-
-
-  function launchActiveLectureStream() {
-    if (!curActiveLecture) return;
-    var videoEl = document.getElementById('yt-cloud-video');
-    var iframeEl = document.getElementById('yt-iframe-player');
-    var overlay = document.getElementById('yt-stream-overlay');
-
-    if (overlay) overlay.style.display = 'none';
-    if (videoEl) videoEl.style.display = 'none';
-    if (iframeEl) {
-      iframeEl.style.display = 'block';
-      iframeEl.src = curActiveLecture.pwUrl;
-    }
-    if (typeof showToast === 'function') {
-      showToast('▶ Playing inside website: ' + curActiveLecture.title, 'success');
-    }
-  }
-
-  function playPWLecture(item) {
-    if (!item) return;
-    curActiveLecture = item;
-
-    var titleEl = document.getElementById('yt-active-title');
-    var overlayTitle = document.getElementById('yt-overlay-title');
-    var subjEl = document.getElementById('yt-active-subject');
-    var facultyEl = document.getElementById('yt-active-faculty');
-    var launchBtn = document.getElementById('yt-btn-pw-launch');
-
-    if (titleEl) titleEl.textContent = item.title;
-    if (overlayTitle) overlayTitle.textContent = item.title;
-    if (subjEl) subjEl.textContent = item.subject + ' • ' + item.chapter;
-    if (facultyEl) facultyEl.textContent = item.faculty;
-    if (launchBtn) {
-      launchBtn.href = item.pwUrl;
-    }
-
-    document.querySelectorAll('.pw-lecture-item').forEach(function(el) {
-      if (el.textContent.indexOf(item.title) !== -1) el.classList.add('active');
-      else el.classList.remove('active');
-    });
-    document.querySelectorAll('.yt-playlist-card').forEach(function(el) {
-      if (el.textContent.indexOf(item.title) !== -1) el.classList.add('active');
-      else el.classList.remove('active');
-    });
-
-    if (typeof showToast === 'function') {
-      showToast('📖 Selected: ' + item.title, 'success');
-    }
   }
 
   //]]></script>
