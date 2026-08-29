@@ -4400,144 +4400,184 @@
 
   
 
-  // ==================== TESTBOOK HUB ENGINE (DIRECT API - NO LOCAL SERVER) ====================
+  
+
+  // ==================== TESTBOOK HUB SMART HYBRID ENGINE ====================
   let tbCurrentExam = null;
   let tbCurrentSection = null;
   let tbSectionsCache = {};
+  let tbUseLocalServer = true;
 
+  const LOCAL_API_BASE = 'http://localhost:5000/api';
   const TB_TOKEN = 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL3Rlc3Rib29rLmNvbSIsInN1YiI6IjY4N2I3ZWQ5NzE0MDE2NmI5ZTY3NWNiYyIsImF1ZCI6IlRCIiwiZXhwIjoiMjAyNi0wOS0yNFQxNDo1Mjo1Ni4zODY5NzkyNzZaIiwiaWF0IjoiMjAyNi0wOC0yNVQxNDo1Mjo1Ni4zODY5NzkyNzZaIiwib3JnSWQiOiIiLCJob21lU3RhdGVJZCI6IjVmOTE2M2E0MmVjODI3YjIxOGRhY2QzNyIsImlzUGFpZFVzZXIiOnRydWUsImlzTE1TVXNlciI6ZmFsc2UsInJvbGVzIjoic3R1ZGVudCJ9.gl3wSz8AT-yKVwtDEz_2DmcB4IWj-QLpcQImRkDVFW5PtI5yd87F3ddV6trIXAdAYHDod2KBR8G0r8bw-zER7o4qYbqDDoVM0RP-Ps2_OtfljiMmPqhQnjgbZCwQkmrSduRKRH5XBrKFKNDWg0Ik3gsHwBaopnk-fQm4XHitrNo';
-  const TB_HEADERS = {
-    'Accept': 'application/json, text/plain, */*',
-    'Authorization': 'Bearer ' + TB_TOKEN,
-    'tb_token': TB_TOKEN
-  };
+  const CORS_PROXY = 'https://corsproxy.io/?';
 
   const TB_EXAMS = [
-    { id: '695775734ccf9df45af31a20', shortTitle: 'Current Affairs 2026', icon: '\u26A1', badge: '493 Tests' },
-    { id: '6960d60ab4975a8fe9557df7', shortTitle: 'SSC CGL 2026', icon: '\uD83C\uDFC6', badge: '2,345 Tests' },
-    { id: '6971ffb9247a3fbd0651f152', shortTitle: 'SSC CHSL 2026', icon: '\uD83C\uDFAF', badge: '2,497 Tests' },
-    { id: '68e4f124a4d902ea5ca9c860', shortTitle: 'RRB NTPC', icon: '\uD83D\uDE86', badge: '1,913 Tests' },
-    { id: '694bf4025a4f5359d3d1971b', shortTitle: 'RRB Group D', icon: '\uD83D\uDEE0', badge: '2,092 Tests' }
+    { id: '695775734ccf9df45af31a20', shortTitle: 'Current Affairs 2026', title: 'Current Affairs 2026', icon: '\u26A1', badge: '493 Tests' },
+    { id: '6960d60ab4975a8fe9557df7', shortTitle: 'SSC CGL 2026', title: 'SSC CGL 2026', icon: '\uD83C\uDFC6', badge: '2,345 Tests' },
+    { id: '6971ffb9247a3fbd0651f152', shortTitle: 'SSC CHSL 2026', title: 'SSC CHSL 2026', icon: '\uD83C\uDFAF', badge: '2,497 Tests' },
+    { id: '68e4f124a4d902ea5ca9c860', shortTitle: 'RRB NTPC', title: 'RRB NTPC', icon: '\uD83D\uDE86', badge: '1,913 Tests' },
+    { id: '694bf4025a4f5359d3d1971b', shortTitle: 'RRB Group D', title: 'RRB Group D', icon: '\uD83D\uDEE0', badge: '2,092 Tests' }
   ];
 
-  async function tbFetch(url) {
+  async function checkLocalServer() {
     try {
-      const res = await fetch(url, { headers: TB_HEADERS });
-      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const res = await fetch(`${LOCAL_API_BASE}/categories`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        tbUseLocalServer = true;
+        return true;
+      }
+    } catch(e) {}
+    tbUseLocalServer = false;
+    return false;
+  }
+
+  async function tbFetchDirect(targetUrl) {
+    try {
+      const proxyUrl = CORS_PROXY + encodeURIComponent(targetUrl);
+      const res = await fetch(proxyUrl, {
+        headers: {
+          'Authorization': 'Bearer ' + TB_TOKEN,
+          'tb_token': TB_TOKEN
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch(e) {
-      console.error('TB Fetch Error:', url, e);
+      console.error('Direct Proxy Fetch Error:', e);
       return null;
     }
   }
 
   async function initTestbookHub() {
     const list = document.getElementById('tb-categories-list');
-    if(list.children.length > 0) return;
+    const statusEl = document.getElementById('tb-conn-status');
     
-    document.getElementById('tb-conn-status').innerHTML = '\uD83D\uDFE1 Loading Exams...';
+    if (statusEl) statusEl.innerHTML = '\uD83D\uDFE1 Connecting...';
+    
+    const isLocal = await checkLocalServer();
+    
+    if (isLocal) {
+      if (statusEl) statusEl.innerHTML = '\uD83D\uDFE2 Local Server Connected';
+    } else {
+      if (statusEl) statusEl.innerHTML = '\uD83D\uDFE1 Cloud Proxy Mode';
+    }
+    
     list.innerHTML = '';
-    
     TB_EXAMS.forEach((c, idx) => {
       const btn = document.createElement('button');
-      btn.className = 'tb-cat-btn' + (idx===0 ? ' active' : '');
+      btn.className = 'tb-cat-btn' + (idx === 0 ? ' active' : '');
       btn.innerHTML = '<span>' + c.icon + '</span> ' + c.shortTitle;
       btn.onclick = () => selectTbCategory(c, btn);
       list.appendChild(btn);
     });
     
-    document.getElementById('tb-conn-status').innerHTML = '\uD83D\uDFE2 Ready';
-    if(TB_EXAMS.length > 0) selectTbCategory(TB_EXAMS[0], list.children[0]);
+    if (TB_EXAMS.length > 0) selectTbCategory(TB_EXAMS[0], list.children[0]);
   }
 
   async function selectTbCategory(cat, targetBtn) {
     tbCurrentExam = cat;
     document.querySelectorAll('.tb-cat-btn').forEach(b => b.classList.remove('active'));
-    targetBtn.classList.add('active');
+    if (targetBtn) targetBtn.classList.add('active');
     
     const tabs = document.getElementById('tb-section-tabs');
-    tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#64748b;">Loading sections from Testbook API...</span>';
+    tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#64748b;">Loading sections...</span>';
     
-    // Fetch sections directly from Testbook API
-    if(tbSectionsCache[cat.id]) {
+    if (tbSectionsCache[cat.id]) {
       renderTbSections(tbSectionsCache[cat.id]);
       return;
     }
     
-    const data = await tbFetch('https://api.testbook.com/api/v2/test-series/' + cat.id);
-    if(!data) {
-      tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#ef4444;">Failed to load sections. Token expired?</span>';
-      return;
+    let sections = [];
+    if (tbUseLocalServer) {
+      try {
+        const res = await fetch(`${LOCAL_API_BASE}/sections?examId=${cat.id}`);
+        sections = await res.json();
+      } catch(e) {}
     }
     
-    const details = (data.data || {}).details || data.data || {};
-    const rawSections = details.sections || data.data?.sections || [];
+    if (!sections || sections.length === 0) {
+      const data = await tbFetchDirect('https://api.testbook.com/api/v2/test-series/' + cat.id);
+      if (data) {
+        const details = (data.data || {}).details || data.data || {};
+        const rawSections = details.sections || data.data?.sections || [];
+        sections = rawSections.map(sec => {
+          const count = (sec.paidTestCount || 0) + (sec.freeTestCount || 0);
+          const displayName = sec.shortName || sec.name;
+          return {
+            id: sec.id || sec._id,
+            name: sec.name,
+            tabTitle: displayName + '(' + count + ')',
+            shortName: displayName,
+            totalCount: count
+          };
+        });
+      }
+    }
     
-    const sections = rawSections.map(sec => {
-      const count = (sec.paidTestCount || 0) + (sec.freeTestCount || 0);
-      const displayName = sec.shortName || sec.name;
-      return {
-        id: sec.id || sec._id,
-        name: sec.name,
-        tabTitle: displayName + '(' + count + ')',
-        shortName: displayName,
-        totalCount: count,
-        subsections: (sec.subsections || []).map(sub => ({
-          id: sub.id || sub._id,
-          name: sub.name,
-          count: (sub.paidTestCount || 0) + (sub.freeTestCount || 0)
-        }))
-      };
-    });
-    
-    tbSectionsCache[cat.id] = sections;
-    renderTbSections(sections);
+    if (sections && sections.length > 0) {
+      tbSectionsCache[cat.id] = sections;
+      renderTbSections(sections);
+    } else {
+      tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#ef4444;">Failed to load sections. Make sure server.py is running locally!</span>';
+    }
   }
 
   function renderTbSections(sections) {
     const tabs = document.getElementById('tb-section-tabs');
     tabs.innerHTML = '';
     
-    if(sections.length === 0) {
-      tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#ef4444;">No sections found</span>';
-      return;
-    }
-    
     sections.forEach((sec, idx) => {
       const btn = document.createElement('button');
-      btn.className = 'tb-section-tab' + (idx===0 ? ' active' : '');
+      btn.className = 'tb-section-tab' + (idx === 0 ? ' active' : '');
       btn.innerHTML = sec.tabTitle;
       btn.onclick = () => selectTbSection(sec, btn);
       tabs.appendChild(btn);
     });
     
-    selectTbSection(sections[0], tabs.children[0]);
+    if (sections.length > 0) selectTbSection(sections[0], tabs.children[0]);
   }
 
   async function selectTbSection(sec, targetBtn) {
     tbCurrentSection = sec;
     document.querySelectorAll('.tb-section-tab').forEach(b => b.classList.remove('active'));
-    if(targetBtn) {
+    if (targetBtn) {
       targetBtn.classList.add('active');
-      targetBtn.scrollIntoView({behavior:'smooth', inline:'center'});
+      targetBtn.scrollIntoView({ behavior: 'smooth', inline: 'center' });
     }
     
     const container = document.getElementById('tb-cards-container');
-    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:20px;">Searching tests on Testbook...</div>';
+    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:20px;">Loading test cards...</div>';
     
-    // Search tests directly from Testbook Search API
-    const searchTerm = encodeURIComponent(sec.shortName || sec.name);
-    const searchUrl = 'https://api.testbook.com/api/v1/search/individual?searchObj=tests&term=' + searchTerm + '&skip=0&limit=25';
+    let tests = [];
+    if (tbUseLocalServer) {
+      try {
+        const secName = encodeURIComponent(sec.shortName || sec.name);
+        const examShort = encodeURIComponent(tbCurrentExam.shortTitle);
+        const res = await fetch(`${LOCAL_API_BASE}/tests?seriesId=${tbCurrentExam.id}&examShort=${examShort}&sectionName=${secName}&page=1&limit=25`);
+        const resData = await res.json();
+        tests = resData.tests || resData;
+      } catch(e) {}
+    }
     
-    const result = await tbFetch(searchUrl);
+    if (!tests || tests.length === 0) {
+      const searchTerm = encodeURIComponent(sec.shortName || sec.name);
+      const searchUrl = 'https://api.testbook.com/api/v1/search/individual?searchObj=tests&term=' + searchTerm + '&skip=0&limit=25';
+      const result = await tbFetchDirect(searchUrl);
+      if (result && result.data && result.data.tests) {
+        tests = result.data.tests;
+      }
+    }
+    
     container.innerHTML = '';
-    
-    if(!result || !result.data || !result.data.tests || result.data.tests.length === 0) {
-      container.innerHTML = '<div style="color:#f59e0b; font-size:13px; padding:20px;">No tests found for this section. Try another tab.</div>';
+    if (!tests || tests.length === 0) {
+      container.innerHTML = '<div style="color:#f59e0b; font-size:13px; padding:20px;">No tests found.</div>';
       return;
     }
     
-    const tests = result.data.tests;
     tests.forEach(t => {
       const card = document.createElement('div');
       card.className = 'tb-card';
@@ -4565,11 +4605,11 @@
   }
 
   function scrollTbTabs(offset) {
-    document.getElementById('tb-section-tabs').scrollBy({left: offset, behavior: 'smooth'});
+    document.getElementById('tb-section-tabs').scrollBy({ left: offset, behavior: 'smooth' });
   }
 
   function stripTbHtml(htmlStr) {
-    if(!htmlStr) return '';
+    if (!htmlStr) return '';
     let text = String(htmlStr).replace(/<[^>]*>?/gm, ' ').trim();
     text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&rsquo;/g, "'").replace(/&lsquo;/g, "'").replace(/&rdquo;/g, '"').replace(/&ldquo;/g, '"');
     text = text.replace(/\s+/g, ' ').trim();
@@ -4577,75 +4617,64 @@
   }
 
   async function parseTestbookData(testId, testTitle) {
-    showAppToast('Fetching test from Testbook API...', 'success');
+    showAppToast('Fetching test data...', 'success');
     
-    // Step 1: Fetch test paper directly from Testbook
-    const testUrl = 'https://api.testbook.com/api/v1/tests/' + testId;
-    const testResult = await tbFetch(testUrl);
+    let questions = [];
+    if (tbUseLocalServer) {
+      try {
+        const res = await fetch(`${LOCAL_API_BASE}/view-test?testId=${testId}`);
+        questions = await res.json();
+      } catch(e) {}
+    }
     
-    if(!testResult || !testResult.data) {
-      showAppToast('Failed to fetch test data!', 'error');
+    if (!questions || questions.length === 0) {
+      const testUrl = 'https://api.testbook.com/api/v1/tests/' + testId;
+      const testResult = await tbFetchDirect(testUrl);
+      if (testResult && testResult.data) {
+        const rawSections = testResult.data.sections || [];
+        rawSections.forEach(sec => {
+          (sec.questions || []).forEach(q => {
+            questions.push(q);
+          });
+        });
+      }
+    }
+    
+    if (!questions || questions.length === 0) {
+      showAppToast('Could not fetch test questions!', 'error');
       return;
     }
     
-    const testData = testResult.data;
-    const allQuestions = [];
-    const sections = testData.sections || [];
-    
-    sections.forEach(sec => {
-      (sec.questions || []).forEach(q => {
-        allQuestions.push(q);
-      });
-    });
-    
-    if(allQuestions.length === 0) {
-      showAppToast('Test has no questions!', 'error');
-      return;
-    }
-    
-    showAppToast('Processing ' + allQuestions.length + ' questions...', 'success');
-    
-    // Step 2: Parse each question and fetch solution
     const tableBody = document.getElementById('editor-table').querySelector('tbody');
     tableBody.innerHTML = '';
     
-    for(let idx = 0; idx < allQuestions.length; idx++) {
-      const q = allQuestions[idx];
-      const qId = q._id || q.id;
+    questions.forEach((q, idx) => {
+      let qText = '', expText = '', opts = ['', '', '', ''], correctAns = '';
       
-      // Get English question and options
-      const en = q.en || {};
-      const qText = stripTbHtml(en.value || '');
-      const enOpts = en.options || [];
-      const opts = [
-        stripTbHtml(enOpts[0] ? enOpts[0].value : ''),
-        stripTbHtml(enOpts[1] ? enOpts[1].value : ''),
-        stripTbHtml(enOpts[2] ? enOpts[2].value : ''),
-        stripTbHtml(enOpts[3] ? enOpts[3].value : '')
-      ];
-      
-      // Fetch solution from Testbook Question API
-      let correctAns = '';
-      let solutionText = '';
-      
-      try {
-        const solResult = await tbFetch('https://api.testbook.com/api/v1/questions/' + qId);
-        if(solResult && solResult.data) {
-          const solData = solResult.data;
-          const coIndex = solData.en?.co || solData.hn?.co;
-          
-          // Map correct option index to text
-          if(coIndex !== undefined && coIndex !== null) {
-            const ci = parseInt(coIndex);
-            if(ci >= 0 && ci < opts.length) correctAns = opts[ci];
-            else if(ci >= 1 && ci <= 4) correctAns = opts[ci - 1];
-          }
-          
-          // Get solution text
-          const sols = solData.en?.sol || [];
-          if(sols.length > 0) solutionText = stripTbHtml(sols[0].value || '');
-        }
-      } catch(e) {}
+      if (q.question_en) {
+        // SQLite DB format from server.py
+        qText = stripTbHtml(q.question_en);
+        expText = stripTbHtml(q.solution_en || '');
+        opts = [
+          stripTbHtml(q.option_1_en || ''),
+          stripTbHtml(q.option_2_en || ''),
+          stripTbHtml(q.option_3_en || ''),
+          stripTbHtml(q.option_4_en || '')
+        ];
+        correctAns = q.correct_option || '';
+      } else {
+        // Direct Testbook JSON format
+        const en = q.en || {};
+        qText = stripTbHtml(en.value || '');
+        const enOpts = en.options || [];
+        opts = [
+          stripTbHtml(enOpts[0] ? enOpts[0].value : ''),
+          stripTbHtml(enOpts[1] ? enOpts[1].value : ''),
+          stripTbHtml(enOpts[2] ? enOpts[2].value : ''),
+          stripTbHtml(enOpts[3] ? enOpts[3].value : '')
+        ];
+        expText = stripTbHtml(q.solution || '');
+      }
       
       const subj = tbCurrentExam ? tbCurrentExam.shortTitle : 'General';
       const topic = tbCurrentSection ? tbCurrentSection.shortName : 'General';
@@ -4661,15 +4690,15 @@
           '<td contenteditable="true" data-field="optC">' + opts[2] + '</td>' +
           '<td contenteditable="true" data-field="optD">' + opts[3] + '</td>' +
           '<td contenteditable="true" data-field="ans">' + correctAns + '</td>' +
-          '<td contenteditable="true" data-field="exp">' + solutionText + '</td>' +
+          '<td contenteditable="true" data-field="exp">' + expText + '</td>' +
           '<td style="text-align:center;">' +
             '<button onclick="this.closest(\'tr\').remove()" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">\u274C</button>' +
           '</td>' +
         '</tr>';
       tableBody.insertAdjacentHTML('beforeend', rowHTML);
-    }
+    });
     
-    showAppToast('Loaded ' + allQuestions.length + ' questions into editor!', 'success');
+    showAppToast('Loaded ' + questions.length + ' questions into Table Editor!', 'success');
     switchView('table');
   }
 
