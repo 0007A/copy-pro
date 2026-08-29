@@ -4325,7 +4325,8 @@
     
     const m = Math.floor((900 - timerSeconds) / 60);
     const s = (900 - timerSeconds) % 60;
-    document.getElementById('res-time').innerText = `${m}m ${s}s`; else {
+    document.getElementById('res-time').innerText = `${m}m ${s}s`;
+    switchView('results');
       switchView('results');
     }
   }
