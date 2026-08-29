@@ -4428,7 +4428,7 @@
     container.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Loading tests...</div>';
     
     try {
-      const res = await fetch(`${TB_API_BASE}/tests?examId=${tbCurrentExam.id}&sectionId=${sec.id}`);
+      const res = await fetch(`${TB_API_BASE}/tests?seriesId=${tbCurrentExam.id}&examShort=${encodeURIComponent(tbCurrentExam.shortTitle)}&sectionName=${encodeURIComponent(sec.name)}&page=1&limit=100`);
       const tests = await res.json();
       container.innerHTML = '';
       
@@ -4465,7 +4465,7 @@
     showAppToast('Fetching test data from server...', 'success');
     
     try {
-      const res = await fetch(`${TB_API_BASE}/view-test?test_id=${testId}`);
+      const res = await fetch(`${TB_API_BASE}/view-test?testId=${testId}`);
       if(!res.ok) throw new Error("Failed to fetch test data");
       
       const data = await res.json();
