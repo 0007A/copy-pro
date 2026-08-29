@@ -44,20 +44,20 @@
     video.dataset.pwExtRegistered = "true";
 
     // Standard custom players wrap the video element inside a container
-    const parent = video.parentElement || document.body;
-    parent.style.position = 'relative';
+    const overlayParent = video.parentElement || document.body;
+    overlayParent.style.position = 'relative';
 
     // Create Left Skip Feedback Indicator
     let leftOverlay = document.createElement('div');
     leftOverlay.className = 'pw-ext-skip-overlay left';
     leftOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">◀◀</div><div>10s</div>';
-    parent.appendChild(leftOverlay);
+    overlayParent.appendChild(leftOverlay);
 
     // Create Right Skip Feedback Indicator
     let rightOverlay = document.createElement('div');
     rightOverlay.className = 'pw-ext-skip-overlay right';
     rightOverlay.innerHTML = '<div style="font-size: 20px; font-weight: 800; margin-bottom: 2px;">▶▶</div><div>10s</div>';
-    parent.appendChild(rightOverlay);
+    overlayParent.appendChild(rightOverlay);
 
     function showSkipFeedback(direction) {
       const overlay = (direction === 'left') ? leftOverlay : rightOverlay;
@@ -67,12 +67,15 @@
       }, 500);
     }
 
-    // Intercept clicks/taps on the video container
-    parent.addEventListener('click', function(e) {
-      const rect = parent.getBoundingClientRect();
+    // Intercept clicks/taps on the window object (inside the player frame)
+    window.addEventListener('click', function(e) {
+      const rect = video.getBoundingClientRect();
       const clickY = e.clientY - rect.top;
       const clickX = e.clientX - rect.left;
       
+      // Ignore click if it's completely outside the video bounding box (e.g. sidebar list)
+      if (clickX < 0 || clickX > rect.width || clickY < 0 || clickY > rect.height) return;
+
       // Ignore clicks near controls bar (bottom 20% height of player)
       if (clickY > rect.height * 0.8) return;
 
@@ -94,7 +97,7 @@
         }
       }
       lastTap = now;
-    }, true); // Use capture phase to intercept before custom player click events play/pause video
+    }, true); // Use capture phase to intercept before custom player click events play/pause video // Use capture phase to intercept before custom player click events play/pause video
   }
 
   // Periodic detector to handle dynamic SPAs and lazy loaded video players

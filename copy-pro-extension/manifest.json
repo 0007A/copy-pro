@@ -8,7 +8,9 @@
     {
       "matches": [
         "https://*.pw.live/*",
-        "https://*.penpencil.co/*"
+        "https://*.penpencil.co/*",
+        "https://*.penpencilvdo.com/*",
+        "https://*.penpencil.live/*"
       ],
       "js": [
         "content.js"
