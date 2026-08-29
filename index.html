@@ -2056,6 +2056,41 @@
     <!-- =========================================================================
          VIEW 2: CLOUD TESTS DASHBOARD (STUDENTS SEE 'START' ONLY, ADMIN SEES 'EDIT')
          ========================================================================= -->
+    
+    <!-- ==================== TESTBOOK HUB VIEW ==================== -->
+    <section class="view-section" id="view-testbook">
+      <div class="testbook-container" style="display: flex; flex-direction: column; gap: 15px; padding: 10px;">
+        
+        <div style="background: var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h2 style="margin:0; font-size: 18px; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+              <span style="background: linear-gradient(135deg, #8b5cf6, #3b82f6); padding: 4px 8px; border-radius: 8px; color: white;">⚡</span>
+              Testbook Master Hub
+            </h2>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">Select any test series to auto-load questions directly into the Copy Pro Table Editor</p>
+          </div>
+          <span id="tb-conn-status" style="font-size:12px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); color: #10b981; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Direct Testbook API Ready</span>
+        </div>
+
+        <div id="tb-categories-list" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">
+          <!-- Categories rendered by JS -->
+        </div>
+
+        <div style="background: white; border-radius: 8px; display: flex; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+          <button onclick="scrollTbTabs(-200)" style="background: #f8fafc; border: none; border-right: 1px solid #e2e8f0; width: 40px; cursor: pointer; color: #64748b; font-weight: bold; font-size: 18px;">‹</button>
+          <div id="tb-section-tabs" style="display: flex; overflow-x: auto; scroll-behavior: smooth; flex-grow: 1; padding: 0;">
+            <span style="padding: 12px; color: #64748b; font-size: 13px;">Loading tabs...</span>
+          </div>
+          <button onclick="scrollTbTabs(200)" style="background: #f8fafc; border: none; border-left: 1px solid #e2e8f0; width: 40px; cursor: pointer; color: #64748b; font-weight: bold; font-size: 18px;">›</button>
+        </div>
+
+        <div id="tb-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+          <!-- Test Cards -->
+        </div>
+
+      </div>
+    </section>
+
     <section class="view-section" id="view-dashboard">
       <div class="dashboard-hero">
         <div>
@@ -4031,6 +4066,7 @@
     if (viewName === 'table') renderTableRows();
     if (viewName === 'dashboard') fetchCloudTopics(false);
     if (viewName === 'videos') loadPWVideoHub();
+    if (viewName === 'testbook') initTestbookHub();
   }
 
   function openModal(id) { document.getElementById(id).classList.add('active'); }
