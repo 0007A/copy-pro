@@ -23,6 +23,19 @@
   <b:skin><![CDATA[
   /* Clean Blogger Base */
   body { margin: 0; padding: 0; }
+  
+  /* Testbook Hub CSS */
+  .tb-cat-btn { padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-muted); cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .tb-cat-btn.active { background: rgba(99,102,241,0.2); border-color: var(--primary); color: white; }
+  .tb-section-tab { padding: 12px 20px; background: white; border: none; border-bottom: 3px solid transparent; color: #64748b; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 600; }
+  .tb-section-tab.active { color: #06b6d4; border-bottom: 3px solid #06b6d4; background: #f0fdfa; }
+  .tb-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+  .tb-card:hover { transform: translateY(-3px); border-color: var(--primary); box-shadow: 0 5px 15px rgba(99,102,241,0.2); }
+  .tb-card-title { font-size: 15px; font-weight: 700; margin: 0 0 10px 0; line-height: 1.4; }
+  .tb-card-meta { display: flex; gap: 10px; font-size: 12px; color: var(--text-muted); margin-bottom: 15px; }
+  .tb-card-btn { width: 100%; padding: 8px; background: rgba(99,102,241,0.15); color: #A5B4FC; border: 1px solid rgba(99,102,241,0.3); border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .tb-card:hover .tb-card-btn { background: var(--primary); color: white; }
+
   ]]></b:skin>
 
   <!-- Complete Web App Stylesheet (Direct Browser Native Injection) -->
@@ -1960,6 +1973,10 @@
         </div>
 
         <div class="nav-tabs">
+          
+          <button class="nav-tab-btn" id="tab-testbook" onclick="switchView('testbook')">
+            📚 Testbook Hub
+          </button>
           <button class="nav-tab-btn active" id="tab-table" onclick="switchView('table')">
             🎮 Laptop Quiz
           </button>
@@ -5165,6 +5182,171 @@
     });
   }
 
-  //]]></script>
+  //]]>
+  // ==================== TESTBOOK HUB ENGINE ====================
+  let tbCurrentExam = null;
+  let tbCurrentSection = null;
+  const TB_API_BASE = 'http://localhost:5000/api';
+
+  async function initTestbookHub() {
+    const list = document.getElementById('tb-categories-list');
+    if(list.children.length > 0) return; // already loaded
+    
+    try {
+      document.getElementById('tb-conn-status').innerHTML = '🟡 Connecting...';
+      const res = await fetch(`${TB_API_BASE}/categories`);
+      const cats = await res.json();
+      
+      list.innerHTML = '';
+      cats.forEach((c, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tb-cat-btn ${idx===0 ? 'active' : ''}`;
+        btn.innerHTML = `<span>${c.icon}</span> ${c.shortTitle}`;
+        btn.onclick = () => selectTbCategory(c, btn);
+        list.appendChild(btn);
+      });
+      document.getElementById('tb-conn-status').innerHTML = '🟢 Connected';
+      if(cats.length > 0) selectTbCategory(cats[0], list.children[0]);
+    } catch(e) {
+      console.error(e);
+      document.getElementById('tb-conn-status').innerHTML = '🔴 Server Offline';
+      document.getElementById('tb-categories-list').innerHTML = `<span style="color:#ef4444; font-size:13px;">Cannot connect to local Testbook server (localhost:5000). Make sure it is running!</span>`;
+    }
+  }
+
+  async function selectTbCategory(cat, targetBtn) {
+    tbCurrentExam = cat;
+    document.querySelectorAll('.tb-cat-btn').forEach(b => b.classList.remove('active'));
+    targetBtn.classList.add('active');
+    
+    const tabs = document.getElementById('tb-section-tabs');
+    tabs.innerHTML = '<span style="padding:12px; font-size:13px; color:#64748b;">Loading sections...</span>';
+    
+    try {
+      const res = await fetch(`${TB_API_BASE}/sections?examId=${cat.id}`);
+      const sections = await res.json();
+      tabs.innerHTML = '';
+      
+      sections.forEach((sec, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `tb-section-tab ${idx===0 ? 'active' : ''}`;
+        btn.innerHTML = sec.tabTitle;
+        btn.onclick = () => selectTbSection(sec, btn);
+        tabs.appendChild(btn);
+      });
+      if(sections.length > 0) selectTbSection(sections[0], tabs.children[0]);
+    } catch(e) {}
+  }
+
+  async function selectTbSection(sec, targetBtn) {
+    tbCurrentSection = sec;
+    document.querySelectorAll('.tb-section-tab').forEach(b => b.classList.remove('active'));
+    targetBtn.classList.add('active');
+    targetBtn.scrollIntoView({behavior:'smooth', inline:'center'});
+    
+    const container = document.getElementById('tb-cards-container');
+    container.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Loading tests...</div>';
+    
+    try {
+      const res = await fetch(`${TB_API_BASE}/tests?examId=${tbCurrentExam.id}&sectionId=${sec.id}`);
+      const tests = await res.json();
+      container.innerHTML = '';
+      
+      tests.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'tb-card';
+        card.innerHTML = `
+          <h4 class="tb-card-title">${t.title}</h4>
+          <div class="tb-card-meta">
+            <span>❓ ${t.questionCount} Qs</span>
+            <span>⭐ ${t.totalMark} Marks</span>
+          </div>
+          <button class="tb-card-btn" onclick="parseTestbookData('${t.id}', '${t.title.replace(/'/g, "\'")}')">
+            ⬇️ Load into Editor
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    } catch(e) {}
+  }
+
+  function scrollTbTabs(offset) {
+    document.getElementById('tb-section-tabs').scrollBy({left: offset, behavior: 'smooth'});
+  }
+
+  function stripTbHtml(htmlStr) {
+    if(!htmlStr) return '';
+    let text = htmlStr.replace(/<[^>]*>?/gm, ' ').trim();
+    text = text.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ');
+    return text;
+  }
+
+  async function parseTestbookData(testId, testTitle) {
+    showAppToast('Fetching test data from server...', 'success');
+    
+    try {
+      const res = await fetch(`${TB_API_BASE}/view-test?test_id=${testId}`);
+      if(!res.ok) throw new Error("Failed to fetch test data");
+      
+      const data = await res.json();
+      const questions = data.questions;
+      
+      if(!questions || questions.length === 0) {
+        showAppToast('Test is empty!', 'error');
+        return;
+      }
+
+      // Convert to Copy Pro Format
+      const tableBody = document.getElementById('editor-table').querySelector('tbody');
+      tableBody.innerHTML = ''; // Clear existing
+      
+      questions.forEach((q, index) => {
+        const qText = stripTbHtml(q.title || "Question text missing");
+        const expText = stripTbHtml(q.solution || "No explanation provided");
+        
+        let opts = ["", "", "", ""];
+        if(q.options && q.options.length >= 4) {
+          opts[0] = stripTbHtml(q.options[0]);
+          opts[1] = stripTbHtml(q.options[1]);
+          opts[2] = stripTbHtml(q.options[2]);
+          opts[3] = stripTbHtml(q.options[3]);
+        }
+        
+        // Convert Answer Index (1-based to letter A,B,C,D or direct value)
+        // Testbook uses co: 1, 2, 3, 4 usually. Or sometimes 0-based.
+        let ansIndex = q.co;
+        if(typeof ansIndex === 'string') ansIndex = parseInt(ansIndex);
+        let ansText = opts[ansIndex - 1] || opts[ansIndex] || ""; // Safe fallback
+        
+        const rowHTML = `
+          <tr data-status="new">
+            <td style="text-align:center; color:var(--text-muted);">${index + 1}</td>
+            <td contenteditable="true" data-field="subject">${tbCurrentExam.shortTitle}</td>
+            <td contenteditable="true" data-field="topic">${tbCurrentSection.tabTitle}</td>
+            <td contenteditable="true" data-field="q">${qText}</td>
+            <td contenteditable="true" data-field="optA">${opts[0]}</td>
+            <td contenteditable="true" data-field="optB">${opts[1]}</td>
+            <td contenteditable="true" data-field="optC">${opts[2]}</td>
+            <td contenteditable="true" data-field="optD">${opts[3]}</td>
+            <td contenteditable="true" data-field="ans">${ansText}</td>
+            <td contenteditable="true" data-field="exp">${expText}</td>
+            <td style="text-align:center;">
+              <button onclick="this.closest('tr').remove()" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">❌</button>
+            </td>
+          </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', rowHTML);
+      });
+      
+      showAppToast(`Loaded ${questions.length} questions successfully!`, 'success');
+      switchView('table'); // Switch to editor view instantly!
+      
+    } catch(err) {
+      console.error(err);
+      showAppToast('Error parsing Testbook data', 'error');
+    }
+  }
+
+</script>
 </body>
 </html>
