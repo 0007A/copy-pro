@@ -4627,7 +4627,7 @@
     return text;
   }
 
-  async function parseTestbookData(testId, testTitle) {
+    async function parseTestbookData(testId, testTitle) {
     showAppToast('Fetching test data...', 'success');
     
     let questions = [];
@@ -4664,11 +4664,11 @@
       ];
     }
     
-    const tableBody = document.getElementById('editor-table').querySelector('tbody');
-    tableBody.innerHTML = '';
+    // 1. Update native Copy Pro tableQuestions array
+    tableQuestions = [];
     
-    questions.forEach((q, idx) => {
-      let qText = '', expText = '', opts = ['', '', '', ''], correctAns = '';
+    questions.forEach((q) => {
+      let qText = '', expText = '', opts = ['', '', '', ''], correctAns = 'A';
       
       if (q.question_en) {
         qText = stripTbHtml(q.question_en);
@@ -4679,7 +4679,16 @@
           stripTbHtml(q.option_3_en || ''),
           stripTbHtml(q.option_4_en || '')
         ];
-        correctAns = q.correct_option || '';
+        
+        const co = (q.correct_option || '').trim();
+        if (co === opts[0]) correctAns = 'A';
+        else if (co === opts[1]) correctAns = 'B';
+        else if (co === opts[2]) correctAns = 'C';
+        else if (co === opts[3]) correctAns = 'D';
+        else if (co === '1' || co === 'A') correctAns = 'A';
+        else if (co === '2' || co === 'B') correctAns = 'B';
+        else if (co === '3' || co === 'C') correctAns = 'C';
+        else if (co === '4' || co === 'D') correctAns = 'D';
       } else {
         const en = q.en || {};
         qText = stripTbHtml(en.value || '');
@@ -4691,31 +4700,30 @@
           stripTbHtml(enOpts[3] ? enOpts[3].value : '')
         ];
         expText = stripTbHtml(q.solution || '');
+        
+        const coVal = (q.co !== undefined) ? parseInt(q.co) : 0;
+        if (coVal === 0 || coVal === 1) correctAns = 'A';
+        else if (coVal === 2) correctAns = 'B';
+        else if (coVal === 3) correctAns = 'C';
+        else if (coVal === 4) correctAns = 'D';
       }
       
-      const subj = tbCurrentExam ? tbCurrentExam.shortTitle : 'General';
-      const topic = tbCurrentSection ? (tbCurrentSection.shortName || tbCurrentSection.name) : 'General';
-      
-      const rowHTML = 
-        '<tr data-status="new">' +
-          '<td style="text-align:center; color:var(--text-muted);">' + (idx + 1) + '</td>' +
-          '<td contenteditable="true" data-field="subject">' + subj + '</td>' +
-          '<td contenteditable="true" data-field="topic">' + topic + '</td>' +
-          '<td contenteditable="true" data-field="q">' + qText + '</td>' +
-          '<td contenteditable="true" data-field="optA">' + opts[0] + '</td>' +
-          '<td contenteditable="true" data-field="optB">' + opts[1] + '</td>' +
-          '<td contenteditable="true" data-field="optC">' + opts[2] + '</td>' +
-          '<td contenteditable="true" data-field="optD">' + opts[3] + '</td>' +
-          '<td contenteditable="true" data-field="ans">' + correctAns + '</td>' +
-          '<td contenteditable="true" data-field="exp">' + expText + '</td>' +
-          '<td style="text-align:center;">' +
-            '<button onclick="this.closest(\'tr\').remove()" style="background:transparent; border:none; color:#ef4444; cursor:pointer;">\u274C</button>' +
-          '</td>' +
-        '</tr>';
-      tableBody.insertAdjacentHTML('beforeend', rowHTML);
+      tableQuestions.push({
+        question: qText,
+        optionA: opts[0],
+        optionB: opts[1],
+        optionC: opts[2],
+        optionD: opts[3],
+        answer: correctAns,
+        solution: expText
+      });
     });
     
-    showAppToast('Loaded ' + questions.length + ' questions into Table Editor!', 'success');
+    // 2. Render native Copy Pro table
+    renderTableRows();
+    
+    // 3. Feedback toast and switch view
+    showAppToast('Loaded ' + tableQuestions.length + ' questions into Table Editor!', 'success');
     switchView('table');
   }
 
