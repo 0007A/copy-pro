@@ -5382,6 +5382,9 @@
     if (sections.length > 0) selectTbSection(sections[0], tabs.children[0]);
   }
 
+  
+  let tbTestsMap = {};
+
   async function selectTbSection(sec, targetBtn) {
     tbCurrentSection = sec;
     document.querySelectorAll('.tb-section-tab').forEach(b => b.classList.remove('active'));
@@ -5421,32 +5424,38 @@
       }
     }
     
+    tbTestsMap = {};
     container.innerHTML = '';
+    
     tests.forEach(t => {
-      const card = document.createElement('div');
-      card.className = 'tb-card';
+      const testId = t.id || t._id;
+      tbTestsMap[testId] = t;
+      
       const qCount = t.questionCount || t.totalQuestions || 25;
       const marks = t.totalMark || t.totalMarks || qCount;
       const title = t.title || 'Untitled Test';
-      const testId = t.id || t._id;
       
+      const card = document.createElement('div');
+      card.className = 'tb-card';
       card.innerHTML = 
-        '<h4 class="tb-card-title">' + title + '</h4>' +
+        '<h4 class="tb-card-title">' + escapeAttr(title) + '</h4>' +
         '<div class="tb-card-meta">' +
           '<span>\u2753 ' + qCount + ' Qs</span>' +
           '<span>\u2B50 ' + marks + ' Marks</span>' +
         '</div>' +
-        '<button class="tb-card-btn" data-tid="' + testId + '" data-ttitle="' + title.replace(/"/g, '&quot;') + '">' +
+        '<button class="tb-card-btn" onclick="loadTbTestToEditor(\'' + testId + '\')">' +
           '\u2B07\uFE0F Load into Editor' +
         '</button>';
-      
-      card.querySelector('.tb-card-btn').addEventListener('click', function() {
-        parseTestbookData(this.getAttribute('data-tid'), this.getAttribute('data-ttitle'));
-      });
       
       container.appendChild(card);
     });
   }
+
+  function loadTbTestToEditor(testId) {
+    const tObj = tbTestsMap[testId] || { title: 'Test Paper' };
+    parseTestbookData(testId, tObj.title);
+  }
+
 
   function scrollTbTabs(offset) {
     document.getElementById('tb-section-tabs').scrollBy({ left: offset, behavior: 'smooth' });
