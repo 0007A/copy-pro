@@ -1893,7 +1893,7 @@
     }
   });
 
-  let tableQuestions = [
+  window.tableQuestions = [
     {
       question: "According to the data discussed, how many national parks were there in India prior to the Wildlife Protection Act of 1972 (up to 1970), and how many are there currently? / ক্লাসে আলোচিত তথ্য অনুযায়ী, ১৯৭২ সালের বন্যপ্রাণী সংরক্ষণ আইনের পূর্বে (১৯৭০ সাল পর্যন্ত) ভারতে কয়টি জাতীয় উদ্যান ছিল এবং বর্তমানে মোট কয়টি জাতীয় উদ্যান রয়েছে?",
       optionA: "5 and 107 / ৫টি এবং ১০৭টি",
@@ -3451,7 +3451,7 @@
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    tableQuestions.forEach((q, idx) => {
+    (window.tableQuestions || tableQuestions).forEach((q, idx) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td style="text-align:center; font-weight:700; color:var(--accent-cyan);">${idx + 1}</td>
@@ -3476,42 +3476,42 @@
       tbody.appendChild(tr);
     });
 
-    document.getElementById('lbl-table-count').innerText = `${tableQuestions.length} Questions`;
+    document.getElementById('lbl-table-count').innerText = `${(window.tableQuestions || tableQuestions).length} Questions`;
   }
 
   function updateCell(idx, field, value) {
-    if (tableQuestions[idx]) tableQuestions[idx][field] = value;
+    const tArr = window.tableQuestions || tableQuestions; if (tArr[idx]) tArr[idx][field] = value;
   }
 
   function addNewEmptyRow() {
-    tableQuestions.push({ question: "", optionA: "", optionB: "", optionC: "", optionD: "", answer: "A", solution: "" });
+    window.tableQuestions.push({ question: "", optionA: "", optionB: "", optionC: "", optionD: "", answer: "A", solution: "" });
     renderTableRows();
     const wrap = document.querySelector('.quiz-editor-table-wrap');
     if (wrap) wrap.scrollTop = wrap.scrollHeight;
   }
 
   function deleteTableRow(idx) {
-    tableQuestions.splice(idx, 1);
+    (window.tableQuestions || tableQuestions).splice(idx, 1);
     renderTableRows();
   }
 
   function clearAllTableRows() {
     if (confirm("Clear all questions from table?")) {
-      tableQuestions = [];
+      window.tableQuestions = [];
       renderTableRows();
       showToast("Table Cleared", "🧹");
     }
   }
 
   function startQuizFromTable() {
-    const validQuestions = tableQuestions.filter(q => q.question && q.question.trim());
+    const validQuestions = (window.tableQuestions || tableQuestions).filter(q => q.question && q.question.trim());
     if (!validQuestions.length) return alert("Please add at least one question to the table first!");
     startQuizWithData(validQuestions, "Laptop Practice Test");
   }
 
   // Save / Load Local
   function saveLocalQuizzes() {
-    if (!tableQuestions.length) return alert("Table is empty!");
+    if (!(window.tableQuestions || tableQuestions).length) return alert("Table is empty!");
     const title = prompt("Enter a name for this Local Quiz:", "My Saved Quiz " + new Date().toLocaleDateString());
     if (!title) return;
 
@@ -3786,7 +3786,7 @@
   // Cloud Sync (Admin Protected)
   function openCloudSyncModal() {
     if (!db) return alert("Firebase is not initialized!");
-    if (!tableQuestions.length) return alert("Table is empty! Add questions first.");
+    if (!(window.tableQuestions || tableQuestions).length) return alert("Table is empty! Add questions first.");
     openModal('cloud-sync-modal');
   }
 
@@ -4679,7 +4679,7 @@
     }
     
     // 1. Update native Copy Pro tableQuestions array
-    tableQuestions = [];
+    window.tableQuestions = [];
     
     questions.forEach((q) => {
       let qText = '', expText = '', opts = ['', '', '', ''], correctAns = 'A';
@@ -4722,7 +4722,7 @@
         else if (coVal === 4) correctAns = 'D';
       }
       
-      tableQuestions.push({
+      window.tableQuestions.push({
         question: qText,
         optionA: opts[0],
         optionB: opts[1],
@@ -4737,7 +4737,7 @@
     renderTableRows();
     
     // 3. Feedback toast and switch view
-    showToast('Loaded ' + tableQuestions.length + ' questions into Table Editor!', 'success');
+    showToast('Loaded ' + (window.tableQuestions || tableQuestions).length + ' questions into Table Editor!', 'success');
     switchView('table');
   }
 
