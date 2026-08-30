@@ -5298,6 +5298,11 @@
   ];
 
   async function checkLocalServer() {
+    // If hosted on HTTPS (like Blogger or Vercel), do not call http://localhost to avoid Mixed Content block
+    if (window.location.protocol === 'https:') {
+      tbUseLocalServer = false;
+      return false;
+    }
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1500);
@@ -5470,7 +5475,7 @@
   }
 
     async function parseTestbookData(testId, testTitle) {
-    showAppToast('Fetching test data...', 'success');
+    showToast('Fetching test data...', 'success');
     
     let questions = [];
     if (tbUseLocalServer) {
@@ -5565,7 +5570,7 @@
     renderTableRows();
     
     // 3. Feedback toast and switch view
-    showAppToast('Loaded ' + tableQuestions.length + ' questions into Table Editor!', 'success');
+    showToast('Loaded ' + tableQuestions.length + ' questions into Table Editor!', 'success');
     switchView('table');
   }
 
