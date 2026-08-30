@@ -4212,6 +4212,8 @@
     if (viewName === 'dashboard') fetchCloudTopics(false);
     if (viewName === 'videos') loadPWVideoHub();
     if (viewName === 'testbook') initTestbookHub();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function openModal(id) { document.getElementById(id).classList.add('active'); }
